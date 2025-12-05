@@ -93,7 +93,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, getDoc, setDoc, updateDoc, orderBy, serverTimestamp, getDocs, increment } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, getDoc, setDoc, updateDoc, orderBy, serverTimestamp, getDocs, arrayUnion, increment } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
         // --- CONFIGURATION ---
         const firebaseConfig = {
@@ -595,19 +595,20 @@
                         const parts = decodedText.split(":");
                         const type = parts[1]; // UID or 'GROUP'
                         
-                        if (mode === 'friend' && parts.length === 3) {
-                            // Friend: SAFECHAT:UID:Timestamp
+                        // UNIVERSAL SCANNER LOGIC
+                        if (type === 'GROUP') {
+                            const gid = parts[2];
+                            const ts = parseInt(parts[3]);
+                            // Allow joining group regardless of initial 'friend' mode click
+                            if (Date.now() - ts < 3000) {
+                                await stopScanAndAction(async () => joinGroup(gid));
+                            }
+                        } else if (parts.length === 3 && mode === 'friend') {
+                             // Friend Logic: SAFECHAT:UID:Timestamp
                             const uid = parts[1];
                             const ts = parseInt(parts[2]);
                             if (Date.now() - ts < 3000) {
                                 await stopScanAndAction(async () => addFriend(uid));
-                            }
-                        } else if (mode === 'group_join' && type === 'GROUP') {
-                            // Group: SAFECHAT:GROUP:GID:Timestamp
-                            const gid = parts[2];
-                            const ts = parseInt(parts[3]);
-                            if (Date.now() - ts < 3000) {
-                                await stopScanAndAction(async () => joinGroup(gid));
                             }
                         }
                     }
