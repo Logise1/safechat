@@ -3,22 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafeChat - Para Niños y Padres</title>
+    <title>SafeChat - Control Parental Avanzado</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600;700&display=swap" rel="stylesheet">
     
-    <!-- QRCode Libs -->
+    <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Para los gráficos -->
 
     <style>
         body {
             font-family: 'Fredoka', sans-serif;
-            background-color: #E0F2FE; /* Sky Blue 100 */
+            background-color: #f0f4f8;
         }
         .blob {
             position: absolute;
@@ -29,61 +30,73 @@
         }
         /* Custom Scrollbar */
         ::-webkit-scrollbar {
-            width: 6px;
+            width: 4px;
         }
         ::-webkit-scrollbar-track {
-            background: #f1f1f1; 
+            background: transparent; 
         }
         ::-webkit-scrollbar-thumb {
-            background: #888; 
-            border-radius: 3px;
+            background: #cbd5e1; 
+            border-radius: 2px;
         }
         .message-bubble {
-            max-width: 75%;
+            max-width: 80%;
             word-wrap: break-word;
-        }
-        #qr-reader {
-            width: 100%;
-            border-radius: 12px;
-            overflow: hidden;
         }
         .animate-pulse-fast {
             animation: pulse 0.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
     </style>
 </head>
-<body class="bg-blue-50 h-screen overflow-hidden flex flex-col items-center justify-center relative">
+<body class="bg-slate-100 h-screen overflow-hidden flex flex-col items-center justify-center relative">
 
     <!-- Background Decoration -->
-    <div class="blob bg-purple-300 w-64 h-64 top-0 left-0 mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-    <div class="blob bg-yellow-300 w-64 h-64 bottom-0 right-0 mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+    <div class="blob bg-purple-300 w-80 h-80 top-0 left-0 mix-blend-multiply filter blur-2xl opacity-60 animate-blob"></div>
+    <div class="blob bg-blue-300 w-80 h-80 bottom-0 right-0 mix-blend-multiply filter blur-2xl opacity-60 animate-blob animation-delay-2000"></div>
 
     <!-- App Container -->
-    <div id="app" class="w-full max-w-md h-full sm:h-[90vh] bg-white sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col relative">
+    <div id="app" class="w-full max-w-md h-full sm:h-[95vh] bg-white sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col relative border border-white/50">
         
         <!-- HEADER -->
-        <header class="bg-indigo-600 text-white p-4 shadow-md flex justify-between items-center z-10">
-            <div class="flex items-center gap-2">
-                <i class="fa-solid fa-shield-cat text-2xl"></i>
-                <h1 class="text-xl font-bold tracking-wide">SafeChat</h1>
+        <header class="bg-slate-900 text-white p-4 shadow-lg flex justify-between items-center z-20">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center">
+                    <i class="fa-solid fa-shield-cat text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-wide leading-none">SafeChat</h1>
+                    <p class="text-[10px] text-gray-400 font-mono">FAMILY OS 2.0</p>
+                </div>
             </div>
-            <button id="logoutBtn" class="hidden text-sm bg-indigo-800 px-3 py-1 rounded-full hover:bg-indigo-700 transition">
-                <i class="fa-solid fa-right-from-bracket"></i> Salir
+            <button id="logoutBtn" class="hidden text-xs bg-slate-700 px-3 py-1.5 rounded-full hover:bg-slate-600 transition border border-slate-600">
+                <i class="fa-solid fa-power-off mr-1"></i> Salir
             </button>
         </header>
 
         <!-- CONTENT AREA -->
-        <main id="mainContent" class="flex-1 overflow-y-auto relative">
-            <!-- Views will be injected here -->
+        <main id="mainContent" class="flex-1 overflow-y-auto relative bg-slate-50 scroll-smooth">
             <div id="loading" class="flex flex-col items-center justify-center h-full">
-                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-indigo-500 mb-2"></i>
-                <p class="text-gray-500">Conectando seguro...</p>
+                <div class="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+                <p class="text-slate-500 font-medium animate-pulse">Cargando sistema...</p>
             </div>
         </main>
 
+        <!-- CHILD BLOCKING OVERLAY -->
+        <div id="blockOverlay" class="hidden absolute inset-0 bg-slate-900/95 z-50 flex flex-col items-center justify-center text-white p-8 text-center backdrop-blur-sm">
+            <i class="fa-solid fa-bed text-6xl text-indigo-400 mb-6"></i>
+            <h2 class="text-3xl font-bold mb-2">¡Tiempo fuera!</h2>
+            <p id="blockReason" class="text-gray-300 mb-8">Has alcanzado tu límite diario o es hora de dormir.</p>
+            <div class="text-sm text-gray-500 font-mono">Solicita más tiempo a tus padres</div>
+        </div>
+
         <!-- TOAST NOTIFICATION -->
-        <div id="toast" class="absolute bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none z-50 text-sm text-center w-max max-w-[90%]">
-            Notification
+        <div id="toast" class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-4 py-3 rounded-xl shadow-xl opacity-0 transition-all duration-300 pointer-events-none z-50 text-sm flex items-center gap-2 min-w-[200px] justify-center scale-90">
+            <span id="toastIcon"></span>
+            <span id="toastMsg">Notification</span>
         </div>
     </div>
 
@@ -91,7 +104,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, getDoc, setDoc, updateDoc, orderBy, serverTimestamp, getDocs, arrayUnion } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, getDoc, setDoc, updateDoc, orderBy, serverTimestamp, getDocs, increment } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
         // --- CONFIGURATION ---
         const firebaseConfig = {
@@ -111,24 +124,43 @@
         // --- STATE & UTILS ---
         let currentUser = null;
         let userData = null;
+        let unsubscribeChildren = null;
         let unsubscribeChats = null;
         let unsubscribeMessages = null;
         let qrInterval = null;
         let html5QrcodeScanner = null;
+        let usageInterval = null;
+        let currentChildListener = null;
 
         const mainContent = document.getElementById('mainContent');
         const logoutBtn = document.getElementById('logoutBtn');
         const toastEl = document.getElementById('toast');
+        const blockOverlay = document.getElementById('blockOverlay');
+        const blockReason = document.getElementById('blockReason');
 
         function showToast(msg, isError = false) {
-            toastEl.innerText = msg;
-            toastEl.className = `absolute bottom-5 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg shadow-lg transition-opacity duration-300 z-50 text-sm text-center w-max max-w-[90%] ${isError ? 'bg-red-500 text-white' : 'bg-green-600 text-white'}`;
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
+            
+            toastMsg.innerText = msg;
+            toastIcon.innerHTML = isError ? '<i class="fa-solid fa-circle-exclamation text-red-400"></i>' : '<i class="fa-solid fa-circle-check text-green-400"></i>';
             toastEl.style.opacity = '1';
-            setTimeout(() => { toastEl.style.opacity = '0'; }, 3000);
+            toastEl.style.transform = 'translate(-50%, 0) scale(1)';
+            
+            setTimeout(() => { 
+                toastEl.style.opacity = '0'; 
+                toastEl.style.transform = 'translate(-50%, 0) scale(0.9)';
+            }, 3000);
         }
 
         function generateLinkCode() {
             return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        function formatTime(minutes) {
+            const h = Math.floor(minutes / 60);
+            const m = minutes % 60;
+            return `${h}h ${m}m`;
         }
 
         // --- VIEWS ---
@@ -136,59 +168,61 @@
         // 1. AUTH VIEW
         function renderAuth() {
             logoutBtn.classList.add('hidden');
+            blockOverlay.classList.add('hidden');
             mainContent.innerHTML = `
-                <div class="p-8 flex flex-col h-full justify-center">
-                    <div class="text-center mb-6">
-                        <div class="inline-block p-4 rounded-full bg-indigo-100 mb-4">
-                            <i class="fa-solid fa-users text-4xl text-indigo-600"></i>
+                <div class="p-8 flex flex-col h-full justify-center bg-white">
+                    <div class="text-center mb-8">
+                        <div class="inline-block p-5 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 mb-4 shadow-lg shadow-indigo-200">
+                            <i class="fa-solid fa-shield-halved text-4xl text-white"></i>
                         </div>
-                        <h2 class="text-2xl font-bold text-gray-800">Bienvenido</h2>
-                        <p class="text-gray-500 text-sm">El chat seguro para la familia</p>
+                        <h2 class="text-3xl font-bold text-slate-800">SafeChat</h2>
+                        <p class="text-slate-400 text-sm mt-1">Control Parental & Chat Seguro</p>
                     </div>
 
-                    <div class="bg-white p-1 rounded-lg border flex mb-6">
-                        <button id="tab-login" class="flex-1 py-2 rounded-md bg-indigo-600 text-white font-medium text-sm transition">Iniciar Sesión</button>
-                        <button id="tab-register" class="flex-1 py-2 rounded-md text-gray-500 font-medium text-sm transition hover:bg-gray-50">Registrarse</button>
+                    <div class="bg-slate-100 p-1 rounded-xl flex mb-6 relative">
+                        <button id="tab-login" class="flex-1 py-2.5 rounded-lg font-bold text-sm transition-all z-10 text-slate-600">Entrar</button>
+                        <button id="tab-register" class="flex-1 py-2.5 rounded-lg font-bold text-sm transition-all z-10 text-slate-600">Registrarse</button>
+                        <div id="tab-bg" class="absolute top-1 left-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-lg shadow-sm transition-all duration-300"></div>
                     </div>
 
                     <form id="authForm" class="space-y-4">
-                        <div id="nameField" class="hidden">
-                            <label class="block text-xs font-bold text-gray-700 uppercase">Nombre</label>
-                            <input type="text" id="inputName" class="w-full mt-1 p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Tu nombre">
+                        <div id="nameField" class="hidden space-y-1">
+                            <label class="text-xs font-bold text-slate-500 uppercase ml-1">Nombre</label>
+                            <input type="text" id="inputName" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition" placeholder="Tu nombre">
                         </div>
                         
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase">Email</label>
-                            <input type="email" id="inputEmail" class="w-full mt-1 p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="correo@ejemplo.com" required>
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-slate-500 uppercase ml-1">Email</label>
+                            <input type="email" id="inputEmail" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition" placeholder="hola@ejemplo.com" required>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase">Contraseña</label>
-                            <input type="password" id="inputPassword" class="w-full mt-1 p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="******" required>
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-slate-500 uppercase ml-1">Contraseña</label>
+                            <input type="password" id="inputPassword" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition" placeholder="••••••••" required>
                         </div>
 
-                        <div id="roleField" class="hidden space-y-2">
-                            <label class="block text-xs font-bold text-gray-700 uppercase">Soy...</label>
-                            <div class="flex gap-4">
-                                <label class="flex items-center gap-2 cursor-pointer border p-3 rounded-lg flex-1 hover:bg-blue-50 has-[:checked]:bg-blue-100 has-[:checked]:border-blue-500 transition">
-                                    <input type="radio" name="role" value="child" class="w-4 h-4 text-indigo-600" checked>
-                                    <div>
-                                        <div class="font-bold text-sm">Hijo/a</div>
-                                        <div class="text-xs text-gray-500">Quiero chatear</div>
+                        <div id="roleField" class="hidden space-y-2 pt-2">
+                            <label class="text-xs font-bold text-slate-500 uppercase ml-1">¿Quién eres?</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="cursor-pointer group">
+                                    <input type="radio" name="role" value="child" class="peer hidden" checked>
+                                    <div class="p-3 rounded-xl border-2 border-slate-200 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 transition text-center group-hover:bg-slate-50">
+                                        <i class="fa-solid fa-child text-2xl text-slate-400 peer-checked:text-indigo-600 mb-1"></i>
+                                        <div class="font-bold text-sm text-slate-600 peer-checked:text-indigo-700">Hijo/a</div>
                                     </div>
                                 </label>
-                                <label class="flex items-center gap-2 cursor-pointer border p-3 rounded-lg flex-1 hover:bg-green-50 has-[:checked]:bg-green-100 has-[:checked]:border-green-500 transition">
-                                    <input type="radio" name="role" value="parent" class="w-4 h-4 text-green-600">
-                                    <div>
-                                        <div class="font-bold text-sm">Padre/Madre</div>
-                                        <div class="text-xs text-gray-500">Quiero supervisar</div>
+                                <label class="cursor-pointer group">
+                                    <input type="radio" name="role" value="parent" class="peer hidden">
+                                    <div class="p-3 rounded-xl border-2 border-slate-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 transition text-center group-hover:bg-slate-50">
+                                        <i class="fa-solid fa-user-shield text-2xl text-slate-400 peer-checked:text-emerald-600 mb-1"></i>
+                                        <div class="font-bold text-sm text-slate-600 peer-checked:text-emerald-700">Padre/Madre</div>
                                     </div>
                                 </label>
                             </div>
                         </div>
 
-                        <button type="submit" id="submitBtn" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg shadow-lg hover:bg-indigo-700 transition transform active:scale-95">
-                            Entrar
+                        <button type="submit" id="submitBtn" class="w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-slate-800 transition transform active:scale-[0.98] mt-4">
+                            Iniciar Sesión
                         </button>
                     </form>
                 </div>
@@ -197,6 +231,7 @@
             let isLogin = true;
             const tabLogin = document.getElementById('tab-login');
             const tabRegister = document.getElementById('tab-register');
+            const tabBg = document.getElementById('tab-bg');
             const nameField = document.getElementById('nameField');
             const roleField = document.getElementById('roleField');
             const btn = document.getElementById('submitBtn');
@@ -204,14 +239,12 @@
             function toggleMode(login) {
                 isLogin = login;
                 if (isLogin) {
-                    tabLogin.className = "flex-1 py-2 rounded-md bg-indigo-600 text-white font-medium text-sm transition";
-                    tabRegister.className = "flex-1 py-2 rounded-md text-gray-500 font-medium text-sm transition hover:bg-gray-50";
+                    tabBg.style.transform = 'translateX(0)';
                     nameField.classList.add('hidden');
                     roleField.classList.add('hidden');
-                    btn.innerText = "Entrar";
+                    btn.innerText = "Iniciar Sesión";
                 } else {
-                    tabRegister.className = "flex-1 py-2 rounded-md bg-indigo-600 text-white font-medium text-sm transition";
-                    tabLogin.className = "flex-1 py-2 rounded-md text-gray-500 font-medium text-sm transition hover:bg-gray-50";
+                    tabBg.style.transform = 'translateX(100%)';
                     nameField.classList.remove('hidden');
                     roleField.classList.remove('hidden');
                     btn.innerText = "Crear Cuenta";
@@ -229,7 +262,7 @@
                 
                 try {
                     btn.disabled = true;
-                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
                     
                     if (isLogin) {
                         await signInWithEmailAndPassword(auth, email, password);
@@ -237,17 +270,26 @@
                         const role = document.querySelector('input[name="role"]:checked').value;
                         const userCred = await createUserWithEmailAndPassword(auth, email, password);
                         
-                        // Setup User Doc
                         const linkCode = role === 'child' ? generateLinkCode() : null;
                         
+                        // Default Settings for Child
+                        const defaultSettings = role === 'child' ? {
+                            dailyLimit: 120, // 2 hours
+                            startTime: "09:00",
+                            endTime: "21:00",
+                            currentUsage: 0,
+                            lastUsageDate: new Date().toISOString().split('T')[0]
+                        } : {};
+
                         await setDoc(doc(db, "users", userCred.user.uid), {
                             name: name,
                             email: email,
                             role: role,
                             uid: userCred.user.uid,
                             linkCode: linkCode,
-                            linkedTo: null, // parentId or childId
-                            createdAt: serverTimestamp()
+                            linkedTo: null, 
+                            createdAt: serverTimestamp(),
+                            ...defaultSettings
                         });
                         
                         await updateProfile(userCred.user, { displayName: name });
@@ -255,35 +297,88 @@
                 } catch (error) {
                     showToast(error.message, true);
                     btn.disabled = false;
-                    btn.innerText = isLogin ? "Entrar" : "Crear Cuenta";
+                    btn.innerText = isLogin ? "Iniciar Sesión" : "Crear Cuenta";
                 }
             };
         }
 
-        // 2. PARENT DASHBOARD
+        // 2. PARENT DASHBOARD - MULTI CHILD
         function renderParentDashboard() {
-            // Check if linked to child
-            if (!userData.linkedTo) {
-                mainContent.innerHTML = `
-                    <div class="p-8 flex flex-col items-center justify-center h-full text-center">
-                        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                            <i class="fa-solid fa-child-reaching text-4xl text-green-600"></i>
+            mainContent.innerHTML = `
+                <div class="flex flex-col h-full bg-slate-50">
+                    <div class="p-6 pb-2">
+                        <div class="flex justify-between items-end mb-4">
+                            <div>
+                                <h2 class="text-2xl font-bold text-slate-800">Mis Hijos</h2>
+                                <p class="text-slate-500 text-sm">Panel de control familiar</p>
+                            </div>
+                            <button id="addChildBtn" class="bg-indigo-600 text-white w-10 h-10 rounded-full shadow-lg shadow-indigo-200 flex items-center justify-center hover:bg-indigo-700 transition active:scale-95">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
                         </div>
-                        <h2 class="text-2xl font-bold text-gray-800 mb-2">Vincular a tu Hijo</h2>
-                        <p class="text-gray-600 mb-6 text-sm">Para supervisar, necesitas el código de 6 caracteres que aparece en el perfil de tu hijo.</p>
                         
-                        <input type="text" id="childCodeInput" class="text-center text-2xl tracking-widest uppercase w-full max-w-[200px] p-2 border-2 border-green-200 rounded-lg focus:border-green-500 outline-none mb-4" maxlength="6" placeholder="A1B2C3">
-                        
-                        <button id="linkChildBtn" class="bg-green-600 text-white px-6 py-3 rounded-lg font-bold shadow-md hover:bg-green-700 w-full max-w-[200px]">
-                            Vincular
-                        </button>
+                        <!-- NOTIFICATIONS / ALERTS -->
+                        <div id="alertsPanel" class="hidden mb-4 bg-orange-50 border border-orange-100 p-3 rounded-xl flex items-start gap-3">
+                            <i class="fa-solid fa-bell text-orange-500 mt-1"></i>
+                            <div>
+                                <h4 class="font-bold text-orange-800 text-sm">Alertas</h4>
+                                <ul id="alertsList" class="text-xs text-orange-700 mt-1 space-y-1"></ul>
+                            </div>
+                        </div>
                     </div>
-                `;
 
-                document.getElementById('linkChildBtn').onclick = async () => {
-                    const code = document.getElementById('childCodeInput').value.toUpperCase();
-                    if (code.length < 6) return showToast("Código incompleto", true);
+                    <div id="childrenList" class="flex-1 overflow-y-auto px-6 space-y-4 pb-20">
+                        <div class="text-center mt-12 text-slate-400">
+                            <i class="fa-solid fa-spinner fa-spin text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
 
+                <!-- ADD CHILD MODAL -->
+                <div id="addChildModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl p-6 w-full max-w-xs shadow-2xl scale-95 opacity-0 transition-all duration-300" id="modalContent">
+                        <h3 class="text-lg font-bold text-slate-800 mb-2">Vincular Hijo</h3>
+                        <p class="text-slate-500 text-xs mb-4">Introduce el código del perfil de tu hijo.</p>
+                        <input type="text" id="linkCodeInput" class="w-full text-center text-2xl tracking-[0.3em] font-mono uppercase border-2 border-indigo-100 rounded-xl p-3 focus:border-indigo-500 outline-none mb-4 bg-slate-50" maxlength="6" placeholder="A1B2C3">
+                        <div class="flex gap-2">
+                            <button id="cancelLinkBtn" class="flex-1 py-2 text-slate-500 hover:bg-slate-50 rounded-lg">Cancelar</button>
+                            <button id="confirmLinkBtn" class="flex-1 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Vincular</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Modal Logic
+            const modal = document.getElementById('addChildModal');
+            const modalContent = document.getElementById('modalContent');
+            const openBtn = document.getElementById('addChildBtn');
+            const cancelBtn = document.getElementById('cancelLinkBtn');
+            const confirmBtn = document.getElementById('confirmLinkBtn');
+
+            function toggleModal(show) {
+                if (show) {
+                    modal.classList.remove('hidden');
+                    setTimeout(() => {
+                        modalContent.classList.remove('scale-95', 'opacity-0');
+                        modalContent.classList.add('scale-100', 'opacity-100');
+                    }, 10);
+                } else {
+                    modalContent.classList.remove('scale-100', 'opacity-100');
+                    modalContent.classList.add('scale-95', 'opacity-0');
+                    setTimeout(() => modal.classList.add('hidden'), 300);
+                }
+            }
+
+            openBtn.onclick = () => toggleModal(true);
+            cancelBtn.onclick = () => toggleModal(false);
+            
+            confirmBtn.onclick = async () => {
+                const code = document.getElementById('linkCodeInput').value.toUpperCase();
+                if (code.length < 6) return showToast("Código incompleto", true);
+
+                confirmBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+                
+                try {
                     const q = query(collection(db, "users"), where("linkCode", "==", code), where("role", "==", "child"));
                     const querySnapshot = await getDocs(q);
 
@@ -291,331 +386,592 @@
                         showToast("Código inválido", true);
                     } else {
                         const childDoc = querySnapshot.docs[0];
-                        // Link logic
-                        await updateDoc(doc(db, "users", currentUser.uid), { linkedTo: childDoc.id });
+                        // Link logic: Parent ID into Child Doc
                         await updateDoc(doc(db, "users", childDoc.id), { linkedTo: currentUser.uid });
-                        // Refresh will handle by onSnapshot or manual reload
-                        window.location.reload(); 
+                        showToast(`¡${childDoc.data().name} vinculado!`);
+                        toggleModal(false);
                     }
-                };
-                return;
-            }
+                } catch(e) {
+                    showToast("Error de conexión", true);
+                }
+                confirmBtn.innerHTML = 'Vincular';
+            };
 
-            // Monitor View
+            // Fetch Children
+            const list = document.getElementById('childrenList');
+            const q = query(collection(db, "users"), where("linkedTo", "==", currentUser.uid));
+            
+            unsubscribeChildren = onSnapshot(q, (snapshot) => {
+                if (snapshot.empty) {
+                    list.innerHTML = `
+                        <div class="flex flex-col items-center justify-center mt-12 opacity-50">
+                            <i class="fa-solid fa-children text-6xl text-slate-300 mb-4"></i>
+                            <p>No tienes hijos vinculados.</p>
+                            <p class="text-xs">Pulsa + para añadir uno.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                list.innerHTML = "";
+                const alertsList = document.getElementById('alertsList');
+                const alertsPanel = document.getElementById('alertsPanel');
+                let alerts = [];
+
+                snapshot.forEach(docSnap => {
+                    const child = docSnap.data();
+                    const usagePercent = Math.min((child.currentUsage / child.dailyLimit) * 100, 100);
+                    let statusColor = "bg-emerald-500";
+                    if (usagePercent > 80) statusColor = "bg-orange-500";
+                    if (usagePercent >= 100) statusColor = "bg-red-500";
+
+                    // Check for alerts
+                    if (usagePercent >= 100) alerts.push(`${child.name} ha alcanzado su límite.`);
+                    
+                    const card = document.createElement('div');
+                    card.className = "bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition cursor-pointer relative overflow-hidden group";
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-3 relative z-10">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 ${child.currentUsage >= child.dailyLimit ? 'bg-red-100 text-red-600' : 'bg-indigo-100 text-indigo-600'} rounded-full flex items-center justify-center font-bold text-lg">
+                                    ${child.name[0]}
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-slate-800">${child.name}</h3>
+                                    <div class="text-xs text-slate-500 flex items-center gap-1">
+                                        <i class="fa-regular fa-clock"></i> ${formatTime(child.currentUsage)} / ${formatTime(child.dailyLimit)}
+                                    </div>
+                                </div>
+                            </div>
+                            <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-indigo-500 transition"></i>
+                        </div>
+                        
+                        <!-- Progress Bar -->
+                        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden relative z-10">
+                            <div class="h-full ${statusColor} rounded-full transition-all duration-500" style="width: ${usagePercent}%"></div>
+                        </div>
+
+                        <!-- BG Decoration -->
+                        <i class="fa-solid fa-shapes absolute -bottom-4 -right-4 text-8xl text-slate-50 opacity-50 z-0 transform rotate-12 group-hover:scale-110 transition"></i>
+                    `;
+                    card.onclick = () => renderChildDetail(docSnap.id, child);
+                    list.appendChild(card);
+                });
+
+                // Update Alerts UI
+                if (alerts.length > 0) {
+                    alertsPanel.classList.remove('hidden');
+                    alertsList.innerHTML = alerts.map(a => `<li>• ${a}</li>`).join('');
+                } else {
+                    alertsPanel.classList.add('hidden');
+                }
+            });
+        }
+
+        function renderChildDetail(childId, childData) {
             mainContent.innerHTML = `
-                <div class="flex flex-col h-full bg-gray-50">
-                    <div class="bg-green-600 p-4 text-white shadow-md">
-                        <h2 class="font-bold"><i class="fa-solid fa-eye mr-2"></i>Modo Supervisor</h2>
-                        <p class="text-xs opacity-80">Viendo chats de tu hijo</p>
+                <div class="flex flex-col h-full bg-slate-50">
+                    <!-- Header -->
+                    <div class="bg-white p-4 shadow-sm z-10 sticky top-0">
+                        <div class="flex items-center gap-3 mb-4">
+                            <button id="backToDash" class="text-slate-400 hover:text-slate-800 transition">
+                                <i class="fa-solid fa-arrow-left text-xl"></i>
+                            </button>
+                            <h2 class="text-xl font-bold text-slate-800 flex-1">${childData.name}</h2>
+                            <button id="extendTimeBtn" class="bg-green-100 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-200 transition">
+                                <i class="fa-solid fa-plus-circle mr-1"></i> 30m
+                            </button>
+                        </div>
+
+                        <!-- Tabs -->
+                        <div class="flex bg-slate-100 p-1 rounded-xl">
+                            <button class="flex-1 py-2 rounded-lg text-sm font-bold text-slate-600 bg-white shadow-sm transition" id="tab-stats">Estadísticas</button>
+                            <button class="flex-1 py-2 rounded-lg text-sm font-bold text-slate-500 hover:bg-white/50 transition" id="tab-controls">Controles</button>
+                            <button class="flex-1 py-2 rounded-lg text-sm font-bold text-slate-500 hover:bg-white/50 transition" id="tab-chats">Chats</button>
+                        </div>
                     </div>
-                    <div id="chatsList" class="flex-1 overflow-y-auto p-4 space-y-3">
-                        <p class="text-center text-gray-500 mt-10"><i class="fa-solid fa-spinner fa-spin"></i> Cargando amigos...</p>
+
+                    <div id="childContent" class="flex-1 overflow-y-auto p-4">
+                        <!-- Content injected here -->
                     </div>
                 </div>
             `;
 
-            loadChats(userData.linkedTo, true); // true = readOnly/parentMode
+            // Function to render Tabs
+            const container = document.getElementById('childContent');
+            
+            // Default: Stats
+            renderStatsTab(container, childId, childData);
+
+            document.getElementById('backToDash').onclick = renderParentDashboard;
+            
+            // Tab switchers
+            const tabs = {
+                stats: document.getElementById('tab-stats'),
+                controls: document.getElementById('tab-controls'),
+                chats: document.getElementById('tab-chats')
+            };
+
+            const setActive = (activeTab) => {
+                Object.values(tabs).forEach(t => t.className = "flex-1 py-2 rounded-lg text-sm font-bold text-slate-500 hover:bg-white/50 transition");
+                tabs[activeTab].className = "flex-1 py-2 rounded-lg text-sm font-bold text-slate-600 bg-white shadow-sm transition";
+            };
+
+            tabs.stats.onclick = () => { setActive('stats'); renderStatsTab(container, childId, childData); };
+            tabs.controls.onclick = () => { setActive('controls'); renderControlsTab(container, childId, childData); };
+            tabs.chats.onclick = () => { setActive('chats'); renderChatsTab(container, childId); };
+
+            // Extend Time Logic
+            document.getElementById('extendTimeBtn').onclick = async () => {
+                try {
+                    await updateDoc(doc(db, "users", childId), {
+                        dailyLimit: increment(30)
+                    });
+                    showToast("Tiempo extendido +30m");
+                    // Update local data reference for stats
+                    childData.dailyLimit += 30;
+                    renderStatsTab(container, childId, childData); // Refresh stats view
+                } catch(e) {
+                    showToast("Error", true);
+                }
+            };
         }
 
-        // 3. CHILD DASHBOARD
-        function renderChildDashboard() {
-            mainContent.innerHTML = `
-                <div class="flex flex-col h-full">
-                    <!-- Profile Header Small -->
-                    <div class="bg-white p-4 border-b flex justify-between items-center">
+        function renderStatsTab(container, childId, childData) {
+            container.innerHTML = `
+                <div class="space-y-4">
+                    <!-- Main Stat Card -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
                         <div>
-                            <h2 class="font-bold text-gray-800 text-lg">Mis Chats</h2>
-                            <p class="text-xs text-indigo-500 font-mono bg-indigo-50 px-2 py-1 rounded inline-block">Código: ${userData.linkCode || '...'}</p>
+                            <p class="text-xs text-slate-400 font-bold uppercase">Hoy</p>
+                            <h3 class="text-3xl font-bold text-slate-800">${formatTime(childData.currentUsage)}</h3>
+                            <p class="text-xs text-slate-500">de ${formatTime(childData.dailyLimit)} permitidos</p>
                         </div>
-                        <button id="addFriendBtn" class="bg-indigo-600 text-white w-10 h-10 rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition">
+                        <div class="w-16 h-16 relative">
+                             <svg class="transform -rotate-90 w-16 h-16">
+                                <circle cx="32" cy="32" r="28" stroke="#f1f5f9" stroke-width="6" fill="transparent" />
+                                <circle cx="32" cy="32" r="28" stroke="#6366f1" stroke-width="6" fill="transparent" 
+                                    stroke-dasharray="${28 * 2 * Math.PI}" 
+                                    stroke-dashoffset="${(28 * 2 * Math.PI) - ((childData.currentUsage / childData.dailyLimit) * (28 * 2 * Math.PI))}" 
+                                    class="transition-all duration-1000" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Graph Card -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                        <h4 class="font-bold text-slate-700 mb-4">Actividad Semanal</h4>
+                        <div class="h-48">
+                            <canvas id="usageChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Dummy Data for Graph (Simulating history)
+            const ctx = document.getElementById('usageChart').getContext('2d');
+            const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+            // Generate random data around the current usage
+            const data = Array.from({length: 7}, () => Math.floor(Math.random() * 180));
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: days,
+                    datasets: [{
+                        label: 'Minutos',
+                        data: data,
+                        backgroundColor: '#818cf8',
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { display: false } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderControlsTab(container, childId, childData) {
+            container.innerHTML = `
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Límite Diario (Minutos)</label>
+                        <div class="flex items-center gap-4">
+                            <input type="range" id="limitRange" min="30" max="300" step="15" value="${childData.dailyLimit}" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                            <span id="limitDisplay" class="font-mono font-bold text-indigo-600 w-16 text-right">${formatTime(childData.dailyLimit)}</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Hora Inicio</label>
+                            <input type="time" id="startTimeInput" value="${childData.startTime || '09:00'}" class="w-full p-2 border rounded-lg text-sm bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Hora Fin</label>
+                            <input type="time" id="endTimeInput" value="${childData.endTime || '21:00'}" class="w-full p-2 border rounded-lg text-sm bg-slate-50">
+                        </div>
+                    </div>
+
+                    <button id="saveControls" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition">
+                        Guardar Cambios
+                    </button>
+                </div>
+            `;
+
+            const range = document.getElementById('limitRange');
+            const display = document.getElementById('limitDisplay');
+            range.oninput = () => display.innerText = formatTime(range.value);
+
+            document.getElementById('saveControls').onclick = async () => {
+                const limit = parseInt(range.value);
+                const start = document.getElementById('startTimeInput').value;
+                const end = document.getElementById('endTimeInput').value;
+                const btn = document.getElementById('saveControls');
+
+                btn.innerText = "Guardando...";
+                try {
+                    await updateDoc(doc(db, "users", childId), {
+                        dailyLimit: limit,
+                        startTime: start,
+                        endTime: end
+                    });
+                    showToast("Configuración guardada");
+                    childData.dailyLimit = limit;
+                    childData.startTime = start;
+                    childData.endTime = end;
+                } catch(e) { showToast("Error", true); }
+                btn.innerText = "Guardar Cambios";
+            };
+        }
+
+        function renderChatsTab(container, childId) {
+            container.innerHTML = `<div id="parentChatList" class="space-y-3"></div>`;
+            loadChats(childId, true, 'parentChatList', container);
+        }
+
+        // 3. CHILD DASHBOARD WITH TRACKING
+        function renderChildDashboard() {
+            // Start Usage Tracking
+            startUsageTracking();
+
+            mainContent.innerHTML = `
+                <div class="flex flex-col h-full bg-slate-50">
+                    <!-- Top Bar -->
+                    <div class="bg-white p-4 shadow-sm z-10 flex justify-between items-center">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h2 class="font-bold text-slate-800 text-lg">Mis Amigos</h2>
+                                <span class="bg-indigo-100 text-indigo-600 text-xs px-2 py-0.5 rounded-full font-bold" id="timeRemainingDisplay">-- min</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1">Código: <span class="font-mono text-slate-600 bg-slate-100 px-1 rounded">${userData.linkCode || '...'}</span></p>
+                        </div>
+                        <button id="addFriendBtn" class="bg-indigo-600 text-white w-10 h-10 rounded-full shadow-lg shadow-indigo-200 flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition">
                             <i class="fa-solid fa-user-plus"></i>
                         </button>
                     </div>
 
-                    <div id="chatsList" class="flex-1 overflow-y-auto p-4 space-y-3">
-                        <!-- Chat Items -->
-                        <div class="text-center mt-10 text-gray-400">
-                            <i class="fa-solid fa-comments text-4xl mb-2"></i>
-                            <p>No tienes chats aún.</p>
-                            <p class="text-sm">¡Añade un amigo con el botón +!</p>
+                    <div id="chatsList" class="flex-1 overflow-y-auto p-4 space-y-3 pb-20">
+                        <div class="text-center mt-12 text-slate-300">
+                            <i class="fa-solid fa-comments text-4xl mb-3"></i>
+                            <p>No tienes chats.</p>
                         </div>
                     </div>
                 </div>
             `;
 
             document.getElementById('addFriendBtn').onclick = renderAddFriendModal;
-            loadChats(currentUser.uid, false);
+            loadChats(currentUser.uid, false, 'chatsList', mainContent);
         }
 
+        // --- TRACKING & BLOCKING LOGIC ---
+        function startUsageTracking() {
+            if (usageInterval) clearInterval(usageInterval);
+
+            // Listen to my own user doc for realtime updates from parent (lock/unlock/extend)
+            currentChildListener = onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
+                userData = docSnap.data();
+                checkRestrictions();
+            });
+
+            // Increment every minute
+            usageInterval = setInterval(async () => {
+                // Only increment if document is focused to save writes? 
+                // For simplicity, we increment if app is open.
+                const today = new Date().toISOString().split('T')[0];
+                
+                // Reset if new day
+                if (userData.lastUsageDate !== today) {
+                    await updateDoc(doc(db, "users", currentUser.uid), {
+                        currentUsage: 0,
+                        lastUsageDate: today
+                    });
+                } else {
+                     await updateDoc(doc(db, "users", currentUser.uid), {
+                        currentUsage: increment(1)
+                    });
+                }
+            }, 60000); // 1 minute
+
+            checkRestrictions();
+        }
+
+        function checkRestrictions() {
+            if (!userData || userData.role !== 'child') return;
+
+            const now = new Date();
+            const currentTime = now.getHours() * 60 + now.getMinutes();
+            
+            // Parse schedule
+            const [startH, startM] = (userData.startTime || "09:00").split(':').map(Number);
+            const [endH, endM] = (userData.endTime || "21:00").split(':').map(Number);
+            const startMins = startH * 60 + startM;
+            const endMins = endH * 60 + endM;
+
+            let isBlocked = false;
+            let reason = "";
+
+            // 1. Check Schedule
+            if (currentTime < startMins || currentTime > endMins) {
+                isBlocked = true;
+                reason = `Horario de uso: ${userData.startTime} - ${userData.endTime}`;
+            }
+
+            // 2. Check Daily Limit
+            if (userData.currentUsage >= userData.dailyLimit) {
+                isBlocked = true;
+                reason = "Has alcanzado tu tiempo límite diario.";
+            }
+
+            // Update UI
+            if (isBlocked) {
+                blockOverlay.classList.remove('hidden');
+                blockReason.innerText = reason;
+            } else {
+                blockOverlay.classList.add('hidden');
+            }
+
+            // Update badge
+            const badge = document.getElementById('timeRemainingDisplay');
+            if(badge) {
+                const left = Math.max(0, userData.dailyLimit - userData.currentUsage);
+                badge.innerText = `${left}m restan`;
+                if(left < 15) badge.classList.replace('bg-indigo-100', 'bg-red-100');
+                if(left < 15) badge.classList.replace('text-indigo-600', 'text-red-600');
+            }
+        }
+
+        // --- SHARED: CHAT LIST & FRIENDS ---
         function renderAddFriendModal() {
             mainContent.innerHTML = `
-                <div class="flex flex-col h-full bg-gray-900 text-white p-6 items-center text-center">
-                    <button id="backToDash" class="absolute top-4 left-4 text-gray-400 hover:text-white">
+                <div class="flex flex-col h-full bg-slate-900 text-white p-6 items-center text-center">
+                    <button id="backToDash" class="absolute top-4 left-4 text-slate-400 hover:text-white transition">
                         <i class="fa-solid fa-arrow-left text-2xl"></i>
                     </button>
                     
-                    <h2 class="text-2xl font-bold mb-2 mt-8">Añadir Amigo</h2>
-                    <p class="text-gray-400 text-sm mb-8">Para añadir a alguien, debéis estar <strong>físicamente juntos</strong>.</p>
+                    <h2 class="text-2xl font-bold mb-2 mt-10">Añadir Amigo</h2>
+                    <p class="text-slate-400 text-sm mb-10 max-w-xs mx-auto">Debéis estar <strong class="text-indigo-400">físicamente juntos</strong> para conectar.</p>
 
                     <div class="flex flex-col gap-4 w-full max-w-xs">
-                        <button id="showQrBtn" class="bg-indigo-600 p-6 rounded-xl border border-indigo-400 hover:bg-indigo-700 transition flex flex-col items-center">
-                            <i class="fa-solid fa-qrcode text-4xl mb-2"></i>
+                        <button id="showQrBtn" class="bg-indigo-600 p-6 rounded-2xl border border-indigo-500 hover:bg-indigo-500 transition flex flex-col items-center group">
+                            <i class="fa-solid fa-qrcode text-4xl mb-3 group-hover:scale-110 transition"></i>
                             <span class="font-bold">Mostrar mi QR</span>
-                            <span class="text-xs opacity-70">Para que te escaneen</span>
                         </button>
 
-                        <div class="flex items-center gap-2 opacity-50">
-                            <div class="h-px bg-gray-500 flex-1"></div>
-                            <span class="text-xs">O</span>
-                            <div class="h-px bg-gray-500 flex-1"></div>
+                        <div class="flex items-center gap-4 opacity-30">
+                            <div class="h-px bg-white flex-1"></div>
+                            <span class="text-xs uppercase font-bold tracking-widest">O</span>
+                            <div class="h-px bg-white flex-1"></div>
                         </div>
 
-                        <button id="scanQrBtn" class="bg-emerald-600 p-6 rounded-xl border border-emerald-400 hover:bg-emerald-700 transition flex flex-col items-center">
-                            <i class="fa-solid fa-camera text-4xl mb-2"></i>
+                        <button id="scanQrBtn" class="bg-emerald-600 p-6 rounded-2xl border border-emerald-500 hover:bg-emerald-500 transition flex flex-col items-center group">
+                            <i class="fa-solid fa-camera text-4xl mb-3 group-hover:scale-110 transition"></i>
                             <span class="font-bold">Escanear QR</span>
-                            <span class="text-xs opacity-70">Escanear amigo</span>
                         </button>
                     </div>
                 </div>
             `;
-
             document.getElementById('backToDash').onclick = renderChildDashboard;
             document.getElementById('showQrBtn').onclick = startDynamicQR;
             document.getElementById('scanQrBtn').onclick = startScanner;
         }
 
-        // --- DYNAMIC QR FEATURE (The Core Requirement) ---
         function startDynamicQR() {
             mainContent.innerHTML = `
                 <div class="flex flex-col h-full bg-white items-center justify-center p-6 relative">
-                    <button id="stopQr" class="absolute top-4 left-4 text-gray-600 hover:text-black">
-                        <i class="fa-solid fa-xmark text-3xl"></i>
+                    <button id="stopQr" class="absolute top-4 left-4 p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition">
+                        <i class="fa-solid fa-xmark text-xl text-slate-600"></i>
                     </button>
-                    <h3 class="font-bold text-xl text-indigo-800 mb-2">Tu Código Seguro</h3>
-                    <p class="text-xs text-center text-gray-500 mb-6 max-w-xs">Este código cambia cada 0.5s. Tu amigo debe escanearlo AHORA.</p>
+                    <h3 class="font-bold text-xl text-slate-800 mb-1">Tu Código Seguro</h3>
+                    <p class="text-xs text-center text-slate-400 mb-8 max-w-xs">Cambia cada 0.5s para máxima seguridad.</p>
                     
-                    <div class="relative">
-                        <div id="qrcode" class="border-4 border-indigo-500 p-2 rounded-xl"></div>
-                        <!-- Security Overlay Effect -->
-                        <div class="absolute inset-0 bg-indigo-500 opacity-10 animate-pulse-fast pointer-events-none rounded-xl"></div>
+                    <div class="relative group">
+                        <div id="qrcode" class="border-8 border-slate-900 p-4 rounded-3xl shadow-2xl bg-white"></div>
+                        <div class="absolute inset-0 bg-indigo-500/10 animate-pulse-fast pointer-events-none rounded-2xl"></div>
                     </div>
-
-                    <div class="mt-8 flex items-center gap-2 text-indigo-600 font-mono text-xs">
-                        <i class="fa-solid fa-lock"></i> Encriptado y Dinámico
+                    
+                    <div class="mt-8 flex items-center gap-2 text-indigo-600 font-mono text-xs font-bold bg-indigo-50 px-3 py-1 rounded-full">
+                        <i class="fa-solid fa-lock"></i> ENCRIPTADO
                     </div>
                 </div>
             `;
-
             const qrContainer = document.getElementById('qrcode');
-            
-            // Generate QR loop
             const updateQR = () => {
                 qrContainer.innerHTML = "";
-                // FORMAT: SAFECHAT:UID:TIMESTAMP
                 const data = `SAFECHAT:${currentUser.uid}:${Date.now()}`;
-                
-                new QRCode(qrContainer, {
-                    text: data,
-                    width: 200,
-                    height: 200,
-                    colorDark : "#000000",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.L
-                });
+                new QRCode(qrContainer, { text: data, width: 220, height: 220, colorDark : "#0f172a", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.L });
             };
-
             updateQR();
-            qrInterval = setInterval(updateQR, 500); // 0.5s requirement
-
-            document.getElementById('stopQr').onclick = () => {
-                clearInterval(qrInterval);
-                renderChildDashboard();
-            };
+            qrInterval = setInterval(updateQR, 500);
+            document.getElementById('stopQr').onclick = () => { clearInterval(qrInterval); renderChildDashboard(); };
         }
 
         function startScanner() {
             mainContent.innerHTML = `
                 <div class="flex flex-col h-full bg-black relative">
-                     <button id="stopScan" class="absolute top-4 left-4 text-white z-20 bg-black/50 p-2 rounded-full">
+                     <button id="stopScan" class="absolute top-4 left-4 text-white z-20 bg-black/40 p-3 rounded-full backdrop-blur-md">
                         <i class="fa-solid fa-arrow-left"></i>
                     </button>
                     <div id="reader" class="w-full h-full object-cover"></div>
-                    <div class="absolute bottom-10 left-0 w-full text-center text-white z-20">
-                        <p class="bg-black/50 inline-block px-4 py-2 rounded-full text-sm">Apunta al QR de tu amigo</p>
+                    <div class="absolute bottom-10 left-0 w-full flex justify-center z-20 pointer-events-none">
+                        <p class="bg-black/60 backdrop-blur-md px-6 py-3 rounded-full text-sm font-bold text-white border border-white/10">Apunta al QR de tu amigo</p>
                     </div>
                 </div>
             `;
-
             html5QrcodeScanner = new Html5Qrcode("reader");
-            
-            const qrCodeSuccessCallback = async (decodedText, decodedResult) => {
-                // FORMAT: SAFECHAT:UID:TIMESTAMP
+            const qrCodeSuccessCallback = async (decodedText) => {
                 if (decodedText.startsWith("SAFECHAT:")) {
-                    const parts = decodedText.split(":");
-                    const friendUid = parts[1];
-                    const timestamp = parseInt(parts[2]);
+                    const [_, friendUid, timestamp] = decodedText.split(":");
                     const now = Date.now();
-
-                    // VALIDATION LOGIC
-                    // We allow a slightly larger window (3s) to account for camera focus/processing time, 
-                    // but the visual QR changes every 0.5s, making it impossible to screenshot and share effectively.
-                    if (now - timestamp < 3000 && now - timestamp > -500) { 
-                        html5QrcodeScanner.stop().then(async () => {
-                            // Add Friend Logic
-                            await addFriend(friendUid);
-                        });
-                    } else {
-                        // Expired code logic (optional visual feedback)
-                        // console.log("Code expired");
+                    if (now - parseInt(timestamp) < 3000 && now - parseInt(timestamp) > -500) { 
+                        html5QrcodeScanner.stop().then(async () => { await addFriend(friendUid); });
                     }
                 }
             };
-
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-            
-            html5QrcodeScanner.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
-            .catch(err => {
-                showToast("Error de cámara", true);
-                renderChildDashboard();
-            });
-
-            document.getElementById('stopScan').onclick = () => {
-                if(html5QrcodeScanner) {
-                    html5QrcodeScanner.stop().then(() => renderChildDashboard()).catch(() => renderChildDashboard());
-                } else {
-                    renderChildDashboard();
-                }
-            };
+            html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, qrCodeSuccessCallback)
+            .catch(err => { showToast("Error de cámara", true); renderChildDashboard(); });
+            document.getElementById('stopScan').onclick = () => { html5QrcodeScanner ? html5QrcodeScanner.stop().then(renderChildDashboard).catch(renderChildDashboard) : renderChildDashboard(); };
         }
 
         async function addFriend(friendUid) {
-            if (friendUid === currentUser.uid) {
-                showToast("No puedes añadirte a ti mismo", true);
-                renderChildDashboard();
-                return;
-            }
-
+            if (friendUid === currentUser.uid) return showToast("Eres tú mismo", true), renderChildDashboard();
+            const chatId = [currentUser.uid, friendUid].sort().join("_");
             try {
-                // Create unique Chat ID (alphabetical sort to ensure uniqueness for pair)
-                const chatId = [currentUser.uid, friendUid].sort().join("_");
-                
-                // Check if chat exists
                 const chatRef = doc(db, "chats", chatId);
-                const chatSnap = await getDoc(chatRef);
-
-                if (!chatSnap.exists()) {
-                    await setDoc(chatRef, {
-                        participants: [currentUser.uid, friendUid],
-                        lastMessage: "Chat iniciado",
-                        lastUpdated: serverTimestamp()
-                    });
+                if (!(await getDoc(chatRef)).exists()) {
+                    await setDoc(chatRef, { participants: [currentUser.uid, friendUid], lastMessage: "¡Nuevos amigos!", lastUpdated: serverTimestamp() });
                 }
-
-                // Add to both users' friend lists (subcollection or array, using array for simplicity in MVP)
-                // Actually, let's just use the 'chats' collection logic to find friends. 
-                // But we need to verify users exist.
-                
-                showToast("¡Amigo añadido con éxito!");
+                showToast("¡Amigo añadido!");
                 renderChildDashboard();
-
-            } catch (e) {
-                showToast("Error añadiendo amigo", true);
-                renderChildDashboard();
-            }
+            } catch (e) { showToast("Error al añadir", true); renderChildDashboard(); }
         }
 
-        // --- CHAT SYSTEM ---
-        
-        function loadChats(userId, isReadOnly) {
-            const listContainer = document.getElementById('chatsList');
+        function loadChats(userId, isReadOnly, containerId, parentContainer) {
+            const listContainer = document.getElementById(containerId);
             const q = query(collection(db, "chats"), where("participants", "array-contains", userId), orderBy("lastUpdated", "desc"));
 
             unsubscribeChats = onSnapshot(q, async (snapshot) => {
+                if (!document.getElementById(containerId)) return; // Safety check if view changed
+                
                 if (snapshot.empty) {
-                    listContainer.innerHTML = `
-                        <div class="text-center mt-10 text-gray-400">
-                            <i class="fa-solid fa-comments text-4xl mb-2"></i>
-                            <p>${isReadOnly ? 'Tu hijo no tiene chats.' : 'No tienes chats.'}</p>
-                        </div>`;
+                    listContainer.innerHTML = isReadOnly 
+                        ? `<p class="text-center text-slate-400 py-8 text-sm">Sin historial de chats.</p>` 
+                        : listContainer.innerHTML; // Keep existing empty state
                     return;
                 }
 
                 listContainer.innerHTML = "";
-                
                 for (const docSnap of snapshot.docs) {
                     const chat = docSnap.data();
                     const otherId = chat.participants.find(id => id !== userId);
-                    
-                    // Fetch other user name
                     const userDoc = await getDoc(doc(db, "users", otherId));
-                    const otherName = userDoc.exists() ? userDoc.data().name : "Usuario desconocido";
-                    const initial = otherName[0].toUpperCase();
-
-                    const div = document.createElement('div');
-                    div.className = "bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3 cursor-pointer hover:bg-gray-50 transition";
-                    div.innerHTML = `
-                        <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold text-lg">
-                            ${initial}
+                    const otherName = userDoc.exists() ? userDoc.data().name : "Desconocido";
+                    
+                    const el = document.createElement('div');
+                    el.className = "bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 cursor-pointer hover:bg-indigo-50 transition group";
+                    el.innerHTML = `
+                        <div class="w-12 h-12 bg-gradient-to-br from-indigo-100 to-white rounded-full flex items-center justify-center text-indigo-600 font-bold text-lg shadow-inner">
+                            ${otherName[0]}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h4 class="font-bold text-gray-800 truncate">${otherName}</h4>
-                            <p class="text-sm text-gray-500 truncate">${chat.lastMessage || '...'}</p>
+                            <div class="flex justify-between items-baseline mb-1">
+                                <h4 class="font-bold text-slate-800 truncate">${otherName}</h4>
+                                <span class="text-[10px] text-slate-400 font-mono">${chat.lastUpdated ? new Date(chat.lastUpdated.seconds * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : ''}</span>
+                            </div>
+                            <p class="text-sm text-slate-500 truncate group-hover:text-indigo-600 transition">${chat.lastMessage}</p>
                         </div>
-                        <i class="fa-solid fa-chevron-right text-gray-300"></i>
                     `;
-                    div.onclick = () => renderChat(docSnap.id, otherName, isReadOnly);
-                    listContainer.appendChild(div);
+                    el.onclick = () => renderChatView(docSnap.id, otherName, isReadOnly, userId, parentContainer);
+                    listContainer.appendChild(el);
                 }
             });
         }
 
-        function renderChat(chatId, otherName, isReadOnly) {
-            mainContent.innerHTML = `
-                <div class="flex flex-col h-full bg-gray-50">
-                    <div class="bg-white p-3 border-b shadow-sm flex items-center gap-3">
-                        <button id="backBtn" class="text-gray-600 hover:text-indigo-600 p-2">
+        function renderChatView(chatId, otherName, isReadOnly, userId, parentContainer) {
+            // Need to clean up listener before switching view content
+            if(unsubscribeChats) unsubscribeChats();
+
+            const chatHTML = `
+                <div class="flex flex-col h-full bg-slate-100 absolute inset-0 z-20">
+                    <div class="bg-white p-3 shadow-sm flex items-center gap-3 z-10">
+                        <button id="chatBackBtn" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-600 transition">
                             <i class="fa-solid fa-arrow-left"></i>
                         </button>
-                        <div class="font-bold text-gray-800 flex-1">
-                            ${otherName} ${isReadOnly ? '<span class="text-xs text-red-500 ml-2">(Solo lectura)</span>' : ''}
+                        <div class="font-bold text-slate-800 flex-1">
+                            ${otherName} ${isReadOnly ? '<span class="px-2 py-0.5 bg-indigo-100 text-indigo-600 rounded text-xs ml-2">Monitorizando</span>' : ''}
                         </div>
                     </div>
 
-                    <div id="messagesArea" class="flex-1 overflow-y-auto p-4 space-y-2 flex flex-col">
-                        <!-- Messages go here -->
-                    </div>
+                    <div id="messagesArea" class="flex-1 overflow-y-auto p-4 space-y-3 flex flex-col pb-20"></div>
 
                     ${!isReadOnly ? `
                     <form id="msgForm" class="p-3 bg-white border-t flex gap-2">
-                        <input type="text" id="msgInput" class="flex-1 border rounded-full px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50" placeholder="Escribe un mensaje..." autocomplete="off">
-                        <button type="submit" class="bg-indigo-600 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-indigo-700">
+                        <input type="text" id="msgInput" class="flex-1 border-0 bg-slate-100 rounded-full px-5 py-3 focus:ring-2 focus:ring-indigo-500 outline-none transition" placeholder="Escribe algo..." autocomplete="off">
+                        <button type="submit" class="bg-indigo-600 text-white w-12 h-12 rounded-full flex items-center justify-center hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition active:scale-95">
                             <i class="fa-solid fa-paper-plane"></i>
                         </button>
                     </form>
                     ` : ''}
                 </div>
             `;
+            
+            // If in Parent Mode (inside tab), we inject into container. If Child mode (main), inject mainContent.
+            // Actually, simplest is to use mainContent but keep context.
+            // For simplicity in this single file architecture:
+            
+            const prevContent = parentContainer.innerHTML;
+            parentContainer.innerHTML = chatHTML; // Replacing content for now
 
-            document.getElementById('backBtn').onclick = () => {
+            document.getElementById('chatBackBtn').onclick = () => {
                 if(unsubscribeMessages) unsubscribeMessages();
-                if(isReadOnly) renderParentDashboard();
-                else renderChildDashboard();
+                // Restore previous view (either child dashboard or parent child detail)
+                if(isReadOnly) {
+                    // Re-render child detail from scratch to ensure state
+                    const u = userId; // This is actually child ID
+                    getDoc(doc(db, "users", u)).then(snap => renderChildDetail(u, snap.data()));
+                } else {
+                    renderChildDashboard();
+                }
             };
 
             const msgsArea = document.getElementById('messagesArea');
-
-            // Load Messages
             const q = query(collection(db, `chats/${chatId}/messages`), orderBy("timestamp", "asc"));
             unsubscribeMessages = onSnapshot(q, (snapshot) => {
                 msgsArea.innerHTML = "";
-                snapshot.forEach(doc => {
-                    const msg = doc.data();
-                    // In readOnly mode, we need to know who is who relative to the CHILD, not the logged in parent
-                    // userData.linkedTo is the child ID.
-                    const isMe = isReadOnly ? (msg.senderId === userData.linkedTo) : (msg.senderId === currentUser.uid);
+                snapshot.forEach(docSnap => {
+                    const msg = docSnap.data();
+                    const isMe = msg.senderId === userId; // userId passed is the child ID in both cases (parent views as child)
                     
                     const bubble = document.createElement('div');
-                    bubble.className = `message-bubble px-4 py-2 rounded-2xl text-sm ${isMe ? 'bg-indigo-600 text-white self-end rounded-tr-none' : 'bg-white border text-gray-800 self-start rounded-tl-none'}`;
+                    bubble.className = `message-bubble px-5 py-2.5 rounded-2xl text-sm shadow-sm ${isMe 
+                        ? 'bg-indigo-600 text-white self-end rounded-br-sm' 
+                        : 'bg-white text-slate-700 self-start rounded-bl-sm'}`;
                     bubble.innerText = msg.text;
                     msgsArea.appendChild(bubble);
                 });
@@ -628,26 +984,14 @@
                     const input = document.getElementById('msgInput');
                     const text = input.value.trim();
                     if(!text) return;
-
                     input.value = "";
-                    
-                    // Add message
-                    await addDoc(collection(db, `chats/${chatId}/messages`), {
-                        text: text,
-                        senderId: currentUser.uid,
-                        timestamp: serverTimestamp()
-                    });
-
-                    // Update last message in chat
-                    await updateDoc(doc(db, "chats", chatId), {
-                        lastMessage: text,
-                        lastUpdated: serverTimestamp()
-                    });
+                    await addDoc(collection(db, `chats/${chatId}/messages`), { text, senderId: userId, timestamp: serverTimestamp() });
+                    await updateDoc(doc(db, "chats", chatId), { lastMessage: text, lastUpdated: serverTimestamp() });
                 };
             }
         }
 
-        // --- AUTH OBSERVER ---
+        // --- AUTH STATE ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
@@ -655,29 +999,23 @@
                 if (userDoc.exists()) {
                     userData = userDoc.data();
                     logoutBtn.classList.remove('hidden');
-                    
-                    if (userData.role === 'parent') {
-                        renderParentDashboard();
-                    } else {
-                        renderChildDashboard();
-                    }
-                } else {
-                    // Fallback if db entry missing (shouldn't happen with correct flow)
-                    renderAuth();
-                }
+                    if (userData.role === 'parent') renderParentDashboard();
+                    else renderChildDashboard();
+                } else renderAuth();
             } else {
                 currentUser = null;
                 userData = null;
+                if(unsubscribeChildren) unsubscribeChildren();
+                if(unsubscribeChats) unsubscribeChats();
+                if(usageInterval) clearInterval(usageInterval);
+                if(currentChildListener) currentChildListener();
                 renderAuth();
             }
         });
 
         logoutBtn.onclick = () => {
             signOut(auth);
-            if(unsubscribeChats) unsubscribeChats();
-            if(unsubscribeMessages) unsubscribeMessages();
-            if(qrInterval) clearInterval(qrInterval);
-            if(html5QrcodeScanner) html5QrcodeScanner.stop();
+            window.location.reload();
         };
 
     </script>
