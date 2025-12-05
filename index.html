@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SafeChat Pro - Vanilla JS</title>
+    <title>SafeChat Family</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
 
     <!-- Firebase SDKs (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
@@ -21,12 +21,13 @@
             theme: {
                 extend: {
                     colors: {
-                        brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 900: '#1e3a8a' },
-                        kid: { 100: '#fef3c7', 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' },
+                        primary: { 500: '#6366f1', 600: '#4f46e5' }, // Indigo moderno
+                        accent: { 500: '#ec4899', 600: '#db2777' }, // Rosa vibrante
+                        kid: { bg: '#f0f9ff', card: '#ffffff', text: '#0f172a' }
                     },
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        kid: ['Fredoka', 'sans-serif'],
+                        sans: ['Outfit', 'sans-serif'],
+                        fun: ['Fredoka', 'sans-serif'],
                     }
                 }
             }
@@ -34,53 +35,41 @@
     </script>
 
     <style>
-        /* Reset y Full Screen Real */
-        html, body {
-            height: 100%;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden; /* Evita scroll en el body */
-            background-color: #f8fafc;
-            touch-action: manipulation;
-        }
-        #app {
-            height: 100%;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-        /* Utilidades */
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .sos-pulse { animation: sos 1.5s infinite; }
-        @keyframes sos { 
-            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 
-            70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); } 
-            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 
-        }
-        .message-bubble-me { border-top-right-radius: 0; }
-        .message-bubble-other { border-top-left-radius: 0; }
+        html, body { height: 100%; margin: 0; overflow: hidden; background: #f8fafc; }
+        #app { height: 100%; display: flex; flex-direction: column; }
         
-        /* Animaciones */
+        /* Animación QR CSS Puro */
+        .qr-noise {
+            background-image: radial-gradient(black 20%, transparent 20%);
+            background-position: 0 0;
+            background-size: 10px 10px;
+            animation: noise 0.5s infinite steps(2);
+        }
+        @keyframes noise {
+            0% { background-position: 0 0; }
+            25% { background-position: 5px 0; }
+            50% { background-position: 0 5px; }
+            75% { background-position: 5px 5px; }
+        }
+        
+        .chat-bubble-me { background: #6366f1; color: white; border-radius: 18px 18px 0 18px; }
+        .chat-bubble-them { background: #ffffff; color: #1e293b; border-radius: 18px 18px 18px 0; border: 1px solid #e2e8f0; }
+        
         .fade-in { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        
-        .slide-up { animation: slideUp 0.3s ease-out; }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <!-- Contenedor Principal -->
     <div id="app">
-        <!-- Pantalla de Carga Inicial -->
-        <div id="loading" class="h-full w-full flex items-center justify-center bg-slate-900 text-white font-bold tracking-widest z-50 fixed top-0 left-0">
-            CARGANDO SISTEMA...
+        <div id="loading" class="h-full w-full flex flex-col items-center justify-center bg-slate-900 text-white gap-4">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+            <p class="font-bold tracking-widest text-sm">INICIANDO SISTEMA SEGURO...</p>
         </div>
     </div>
 
     <script>
-        // --- 1. CONFIGURACIÓN E INICIALIZACIÓN ---
+        // --- 1. CONFIGURACIÓN ---
         const firebaseConfig = {
             apiKey: "AIzaSyC1XbhA7TTz7gn-3_SFJ53p7DPfq36eRdg",
             authDomain: "safechat-224e2.firebaseapp.com",
@@ -94,7 +83,7 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-        const APP_ID = 'safechat-pro-v3-vanilla'; 
+        const APP_ID = 'safechat-v4-full'; 
         
         const COLLECTIONS = {
             USERS: `artifacts/${APP_ID}/public/data/users`,
@@ -102,340 +91,248 @@
             ALERTS: `artifacts/${APP_ID}/public/data/alerts`
         };
 
-        const BAD_WORDS = ["tonto", "estupido", "idiota", "matar", "odio", "feo", "gordo"];
-        const AVATARS = ["🦁", "🦊", "🐼", "🐨", "🐯", "🦄", "🦕", "🐙", "🚀", "⭐"];
+        const BAD_WORDS = ["tonto", "feo", "idiota", "gordo", "matar", "odio"];
+        const AVATARS = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮"];
 
-        // --- 2. SISTEMA DE UI (MODALES Y TOASTS) ---
-        // Reemplaza alert(), confirm(), prompt() nativos
-        
-        function showToast(message, type = 'info') {
-            const toast = document.createElement('div');
-            const colors = type === 'error' ? 'bg-red-500' : 'bg-green-500';
-            toast.className = `fixed top-4 right-4 ${colors} text-white px-6 py-4 rounded-xl shadow-2xl z-[100] font-bold text-sm transform transition-all duration-300 slide-up flex items-center gap-3`;
-            toast.innerHTML = `
-                <span>${type === 'error' ? '⚠️' : '✅'}</span>
-                <span>${message}</span>
-            `;
-            document.body.appendChild(toast);
-            setTimeout(() => {
-                toast.classList.add('opacity-0', '-translate-y-4');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
-        function showModal({ title, text, inputPlaceholder, onConfirm, confirmText = 'Aceptar', confirmColor = 'bg-brand-600' }) {
-            const overlay = document.createElement('div');
-            overlay.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] flex items-center justify-center p-4 fade-in';
-            
-            let inputHtml = '';
-            if (inputPlaceholder) {
-                inputHtml = `<input id="modal-input" class="w-full bg-slate-100 border border-slate-200 rounded-xl p-4 mt-4 focus:ring-2 focus:ring-brand-500 outline-none text-slate-800" placeholder="${inputPlaceholder}" autocomplete="off">`;
-            }
-
-            overlay.innerHTML = `
-                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100 slide-up">
-                    <div class="p-6">
-                        <h3 class="text-xl font-bold text-slate-800 mb-2">${title}</h3>
-                        <p class="text-slate-500 text-sm leading-relaxed">${text}</p>
-                        ${inputHtml}
-                    </div>
-                    <div class="bg-slate-50 p-4 flex gap-3">
-                        <button id="modal-cancel" class="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-200 rounded-xl transition">Cancelar</button>
-                        <button id="modal-confirm" class="flex-1 py-3 ${confirmColor} text-white font-bold rounded-xl shadow-lg hover:opacity-90 transition">${confirmText}</button>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(overlay);
-
-            const input = overlay.querySelector('#modal-input');
-            const close = () => overlay.remove();
-
-            if (input) setTimeout(() => input.focus(), 100);
-
-            overlay.querySelector('#modal-cancel').onclick = close;
-            overlay.querySelector('#modal-confirm').onclick = () => {
-                const val = input ? input.value.trim() : true;
-                if (input && !val) return input.focus();
-                onConfirm(val);
-                close();
-            };
-            
-            if (input) {
-                input.onkeypress = (e) => {
-                    if (e.key === 'Enter') overlay.querySelector('#modal-confirm').click();
-                };
-            }
-        }
-
-        // --- 3. ESTADO GLOBAL ---
+        // --- 2. ESTADO GLOBAL ---
         const state = {
-            user: null, userData: null, view: 'loading',
-            kids: [], alerts: [], chats: [],
-            selectedKid: null, activeChat: null,
-            unsubscribes: [], profileUnsub: null
-        };
-
-        // --- 4. ICONOS SVG ---
-        const icons = {
-            shield: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
-            users: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
-            lock: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
-            unlock: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`,
-            home: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
-            chat: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
-            send: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`,
-            camera: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
-            qr: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><path d="M3 14h1v1H3z"/><path d="M5 14h1v1H5z"/><path d="M3 16h1v1H3z"/><path d="M5 16h1v1H5z"/><path d="M7 14h1v1H7z"/><path d="M9 14h1v1H9z"/><path d="M7 16h1v1H7z"/><path d="M9 16h1v1H9z"/><path d="M7 18h1v1H7z"/><path d="M9 18h1v1H9z"/></svg>`,
-            logout: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`,
-            sos: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
-            back: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`
+            user: null, userData: null,
+            kids: [], chats: [], alerts: [],
+            selectedKid: null, activeChatId: null, // Guardamos ID, no objeto, para evitar datos viejos
+            unsubscribes: []
         };
 
         const appDiv = document.getElementById('app');
 
+        // --- 3. UTILIDADES UI ---
         function cleanListeners() {
             state.unsubscribes.forEach(u => u());
             state.unsubscribes = [];
         }
 
-        // --- VISTA: AUTENTICACIÓN ---
+        function showToast(msg, type='info') {
+            const el = document.createElement('div');
+            el.className = `fixed top-5 right-5 px-6 py-4 rounded-xl shadow-2xl text-white font-bold z-50 fade-in ${type==='error'?'bg-red-500':'bg-green-500'}`;
+            el.innerText = msg;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 3000);
+        }
+
+        function showModal(html) {
+            const el = document.createElement('div');
+            el.className = "fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in";
+            el.innerHTML = `<div class="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">${html}</div>`;
+            el.onclick = (e) => { if(e.target === el) el.remove(); }
+            document.body.appendChild(el);
+            return el;
+        }
+
+        // --- 4. ICONOS ---
+        const icon = (name) => {
+            const paths = {
+                logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+                send: '<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
+                qr: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><path d="M3 14h1v1H3z"/><path d="M5 14h1v1H5z"/><path d="M3 16h1v1H3z"/><path d="M5 16h1v1H5z"/><path d="M3 18h1v1H3z"/><path d="M5 18h1v1H5z"/><path d="M7 14h1v1H7z"/><path d="M9 14h1v1H9z"/><path d="M7 16h1v1H7z"/><path d="M9 16h1v1H9z"/><path d="M7 18h1v1H7z"/><path d="M9 18h1v1H9z"/>',
+                plus: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>',
+                users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+                lock: '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+                shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'
+            };
+            return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths[name]||''}</svg>`;
+        };
+
+        // --- 5. LÓGICA & VISTAS ---
+
+        // >>> VISTA AUTH <<<
         function renderAuth() {
             let isRegister = false;
             let role = 'parent';
-            let selectedAvatar = AVATARS[0];
+            let avatar = AVATARS[0];
 
-            const renderForm = () => {
+            const render = () => {
                 appDiv.innerHTML = `
-                    <div class="h-full w-full flex items-center justify-center bg-slate-900 p-6 relative overflow-hidden fade-in">
-                         <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-                         <div class="bg-white/10 backdrop-blur-xl p-8 rounded-3xl w-full max-w-md border border-white/20 shadow-2xl relative z-10">
+                    <div class="h-full flex items-center justify-center bg-slate-900 p-4">
+                        <div class="bg-white/10 backdrop-blur-md p-8 rounded-3xl w-full max-w-md border border-white/20 shadow-2xl text-white">
                             <div class="text-center mb-8">
-                                <div class="w-16 h-16 bg-gradient-to-tr from-brand-500 to-kid-400 rounded-2xl mx-auto flex items-center justify-center shadow-lg mb-4 text-white">
-                                    ${icons.shield}
-                                </div>
-                                <h1 class="text-3xl font-bold text-white mb-1">SafeChat Pro</h1>
-                                <p class="text-slate-400 text-sm">Plataforma Segura V3.0 - Vanilla JS</p>
+                                <div class="bg-primary-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-lg shadow-primary-600/50">🛡️</div>
+                                <h1 class="text-3xl font-bold">SafeChat</h1>
+                                <p class="text-white/50">Conexión Familiar Segura</p>
+                            </div>
+                            
+                            <div class="bg-black/20 p-1 rounded-xl flex mb-6">
+                                <button onclick="window.setAuthMode(false)" class="flex-1 py-2 rounded-lg font-bold text-sm transition ${!isRegister ? 'bg-white text-slate-900' : 'text-white/50'}">Entrar</button>
+                                <button onclick="window.setAuthMode(true)" class="flex-1 py-2 rounded-lg font-bold text-sm transition ${isRegister ? 'bg-white text-slate-900' : 'text-white/50'}">Crear</button>
                             </div>
 
-                            <div class="flex bg-black/20 p-1 rounded-xl mb-6">
-                                <button id="btn-login-mode" class="flex-1 py-2 rounded-lg text-sm font-bold transition ${!isRegister ? 'bg-white text-slate-900 shadow' : 'text-slate-400'}">Entrar</button>
-                                <button id="btn-register-mode" class="flex-1 py-2 rounded-lg text-sm font-bold transition ${isRegister ? 'bg-white text-slate-900 shadow' : 'text-slate-400'}">Registrar</button>
-                            </div>
-
-                            <form id="auth-form" class="space-y-4">
+                            <form onsubmit="window.handleAuth(event)" class="space-y-4">
                                 ${isRegister ? `
                                     <div class="grid grid-cols-2 gap-3">
-                                        <button type="button" class="btn-role p-3 rounded-xl border-2 font-bold text-sm transition ${role==='parent'?'border-brand-500 bg-brand-500/20 text-brand-300':'border-slate-700 text-slate-500'}" data-role="parent">Soy Padre</button>
-                                        <button type="button" class="btn-role p-3 rounded-xl border-2 font-bold text-sm transition ${role==='kid'?'border-kid-500 bg-kid-500/20 text-kid-300':'border-slate-700 text-slate-500'}" data-role="kid">Soy Niño</button>
+                                        <div onclick="window.setRole('parent')" class="p-3 border-2 rounded-xl text-center cursor-pointer transition ${role==='parent'?'border-primary-500 bg-primary-500/20':'border-white/20 opacity-50'}">👮 Padre</div>
+                                        <div onclick="window.setRole('kid')" class="p-3 border-2 rounded-xl text-center cursor-pointer transition ${role==='kid'?'border-accent-500 bg-accent-500/20':'border-white/20 opacity-50'}">🧒 Niño</div>
                                     </div>
-                                    <input id="input-name" placeholder="Nombre Completo" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:border-brand-500 outline-none transition">
+                                    <input id="name" placeholder="Nombre" class="w-full bg-white/5 border border-white/10 p-3 rounded-xl focus:border-primary-500 outline-none" required>
                                     ${role === 'kid' ? `
-                                        <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" id="avatar-list">
-                                            ${AVATARS.map(a => `<button type="button" class="btn-avatar text-2xl p-2 rounded-lg transition ${selectedAvatar === a ? 'bg-white/20 scale-110' : 'opacity-50'}" data-av="${a}">${a}</button>`).join('')}
+                                        <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                                            ${AVATARS.map(a => `<div onclick="window.setAvatar('${a}')" class="text-2xl p-2 rounded-lg cursor-pointer ${avatar===a?'bg-white/20 scale-110':''}" >${a}</div>`).join('')}
                                         </div>
-                                    ` : ''}
+                                    `:''}
                                 ` : ''}
-                                <input id="input-email" type="email" placeholder="Correo Electrónico" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:border-brand-500 outline-none transition">
-                                <input id="input-pass" type="password" placeholder="Contraseña" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:border-brand-500 outline-none transition">
-                                <button type="submit" id="btn-submit" class="w-full bg-gradient-to-r from-brand-600 to-brand-500 text-white font-bold py-4 rounded-xl shadow-lg hover:scale-[1.02] transition">
-                                    ${isRegister ? 'Crear Cuenta' : 'Iniciar Sesión'}
-                                </button>
+                                <input id="email" type="email" placeholder="Email" class="w-full bg-white/5 border border-white/10 p-3 rounded-xl focus:border-primary-500 outline-none" required>
+                                <input id="pass" type="password" placeholder="Contraseña" class="w-full bg-white/5 border border-white/10 p-3 rounded-xl focus:border-primary-500 outline-none" required>
+                                <button class="w-full bg-primary-600 hover:bg-primary-500 py-3 rounded-xl font-bold shadow-lg shadow-primary-600/30 transition transform active:scale-95">CONTINUAR</button>
                             </form>
-                         </div>
+                        </div>
                     </div>
                 `;
-
-                // Listeners
-                document.getElementById('btn-login-mode').onclick = () => { isRegister = false; renderForm(); };
-                document.getElementById('btn-register-mode').onclick = () => { isRegister = true; renderForm(); };
-                
-                document.querySelectorAll('.btn-role').forEach(btn => {
-                    btn.onclick = (e) => { role = e.target.dataset.role; renderForm(); }
-                });
-
-                document.querySelectorAll('.btn-avatar').forEach(btn => {
-                    btn.onclick = (e) => { selectedAvatar = e.target.dataset.av; renderForm(); }
-                });
-
-                document.getElementById('auth-form').onsubmit = async (e) => {
-                    e.preventDefault();
-                    
-                    const btn = document.getElementById('btn-submit');
-                    const originalText = btn.innerText;
-                    btn.innerText = "Procesando...";
-                    btn.disabled = true;
-                    btn.classList.add('opacity-50', 'cursor-not-allowed');
-
-                    const email = document.getElementById('input-email').value;
-                    const pass = document.getElementById('input-pass').value;
-                    
-                    try {
-                        if(isRegister) {
-                            const name = document.getElementById('input-name').value;
-                            const r = await auth.createUserWithEmailAndPassword(email, pass);
-                            await db.collection(COLLECTIONS.USERS).doc(r.user.uid).set({
-                                name, email, role, 
-                                avatar: role === 'kid' ? selectedAvatar : '👤',
-                                familyCode: Math.random().toString(36).substring(2,8).toUpperCase(),
-                                parentId: null, isLocked: false, createdAt: new Date().toISOString()
-                            });
-                        } else {
-                            await auth.signInWithEmailAndPassword(email, pass);
-                        }
-                    } catch(err) {
-                        showToast(err.message, 'error');
-                        btn.innerText = originalText;
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    }
-                };
             };
-            renderForm();
+
+            window.setAuthMode = (m) => { isRegister = m; render(); };
+            window.setRole = (r) => { role = r; render(); };
+            window.setAvatar = (a) => { avatar = a; render(); };
+            
+            window.handleAuth = async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('email').value;
+                const pass = document.getElementById('pass').value;
+                const name = document.getElementById('name')?.value;
+                
+                try {
+                    if(isRegister) {
+                        const r = await auth.createUserWithEmailAndPassword(email, pass);
+                        await db.collection(COLLECTIONS.USERS).doc(r.user.uid).set({
+                            name, email, role, avatar: role==='kid'?avatar:'👤',
+                            familyCode: Math.random().toString(36).substring(2,8).toUpperCase(),
+                            parentId: null, isLocked: false, createdAt: new Date().toISOString()
+                        });
+                    } else {
+                        await auth.signInWithEmailAndPassword(email, pass);
+                    }
+                } catch(err) { showToast(err.message, 'error'); }
+            };
+            
+            render();
         }
 
-        // --- VISTA: PADRE ---
-        function renderParentDashboard() {
+        // >>> VISTA PADRE <<<
+        function renderParent() {
             cleanListeners();
-            
-            // Kids Listener
+            // Listener Hijos
             state.unsubscribes.push(
                 db.collection(COLLECTIONS.USERS).where('parentId', '==', state.user.uid)
                 .onSnapshot(snap => {
                     state.kids = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    refreshParentView();
+                    refreshParentUI();
                 })
             );
 
-            // Alerts Listener
-            state.unsubscribes.push(
-                db.collection(COLLECTIONS.ALERTS).where('parentId', '==', state.user.uid).orderBy('timestamp', 'desc').limit(20)
-                .onSnapshot(snap => {
-                    state.alerts = snap.docs.map(d => d.data());
-                    refreshParentView();
-                })
-            );
-
+            // Layout Base
             appDiv.innerHTML = `
-                <div class="flex h-full bg-slate-50 font-sans">
-                    <div class="w-16 md:w-64 bg-slate-900 text-slate-300 flex flex-col py-6 shadow-2xl z-20 flex-shrink-0">
-                        <div class="px-4 mb-8 flex items-center justify-center md:justify-start gap-3 text-white">
-                            <div class="bg-brand-600 p-2 rounded-lg"><div class="w-5 h-5">${icons.shield}</div></div>
-                            <span class="font-bold text-lg hidden md:block">SafeChat Pro</span>
+                <div class="flex h-full bg-slate-50 text-slate-800 font-sans">
+                    <!-- Sidebar -->
+                    <div class="w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm hidden md:flex">
+                        <div class="p-6 border-b border-slate-100 font-bold text-xl flex items-center gap-2 text-primary-600">
+                            ${icon('shield')} Panel Parental
                         </div>
-                        <nav class="flex-1 space-y-2 px-2" id="parent-nav"></nav>
-                        <div class="px-4 pt-4 border-t border-slate-800">
-                            <button id="btn-logout" class="flex items-center gap-2 hover:text-white transition w-full justify-center md:justify-start">
-                                <div class="w-5 h-5">${icons.logout}</div> <span class="hidden md:block">Salir</span>
+                        <div id="parent-list" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
+                        <div class="p-4 border-t border-slate-100">
+                            <button onclick="auth.signOut()" class="w-full flex items-center gap-2 p-3 text-slate-500 hover:bg-slate-50 rounded-xl transition font-bold text-sm">
+                                ${icon('logout')} Cerrar Sesión
                             </button>
                         </div>
                     </div>
-                    <div class="flex-1 flex flex-col h-full overflow-hidden relative">
-                        <header class="bg-white h-16 border-b flex items-center justify-between px-6 shadow-sm flex-shrink-0">
-                            <h2 class="text-xl font-bold text-slate-800" id="header-title">Resumen</h2>
-                            <div class="flex items-center gap-3">
-                                <div class="text-right hidden sm:block">
-                                    <div class="text-sm font-bold text-slate-800">${state.userData.name}</div>
-                                    <div class="text-xs text-slate-500">Admin</div>
-                                </div>
-                                <div class="w-10 h-10 bg-brand-100 rounded-full flex items-center justify-center text-brand-600 font-bold border-2 border-brand-200">${state.userData.name[0]}</div>
-                            </div>
-                        </header>
-                        <main id="parent-content" class="flex-1 overflow-y-auto p-4 md:p-8"></main>
+                    
+                    <!-- Main -->
+                    <div class="flex-1 flex flex-col relative bg-slate-50/50">
+                        <!-- Mobile Header -->
+                        <div class="md:hidden h-16 bg-white border-b flex items-center justify-between px-4 shadow-sm">
+                            <span class="font-bold text-primary-600">SafeChat</span>
+                            <button onclick="auth.signOut()" class="text-slate-400">${icon('logout')}</button>
+                        </div>
+
+                        <div id="parent-content" class="flex-1 overflow-y-auto p-4 md:p-8">
+                            <!-- Dynamic Content -->
+                        </div>
                     </div>
                 </div>
             `;
-
-            document.getElementById('btn-logout').onclick = () => auth.signOut();
-            refreshParentView();
+            refreshParentUI();
         }
 
-        function refreshParentView() {
-            const nav = document.getElementById('parent-nav');
-            if(!nav) return;
+        function refreshParentUI() {
+            const listEl = document.getElementById('parent-list');
+            const contentEl = document.getElementById('parent-content');
+            if(!listEl || !contentEl) return;
 
-            nav.innerHTML = `
-                <button onclick="switchParentView('overview')" class="w-full flex items-center gap-3 p-3 rounded-xl transition-all ${!state.selectedKid && state.view === 'parent_overview' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800'}">
-                    <div class="w-5 h-5">${icons.home}</div> <span class="hidden md:block font-medium">Panel General</span>
-                </button>
-                <div class="pt-4 pb-2 px-2 text-xs font-bold uppercase text-slate-500 hidden md:block">Dispositivos</div>
+            // Render Sidebar List
+            listEl.innerHTML = `
+                <div onclick="window.selectKid(null)" class="p-3 rounded-xl cursor-pointer font-bold text-sm flex items-center gap-3 transition ${!state.selectedKid ? 'bg-primary-50 text-primary-600' : 'hover:bg-slate-50 text-slate-600'}">
+                    ${icon('users')} Resumen General
+                </div>
+                <div class="mt-4 mb-2 text-xs font-bold text-slate-400 uppercase px-2">Mis Hijos</div>
                 ${state.kids.map(kid => `
-                    <button onclick="selectKid('${kid.id}')" class="w-full flex items-center gap-3 p-3 rounded-xl transition-all ${state.selectedKid?.id === kid.id ? 'bg-slate-800 text-white border-l-4 border-brand-500' : 'hover:bg-slate-800'}">
-                        <span class="text-xl">${kid.avatar || '👤'}</span> 
-                        <div class="hidden md:block text-left overflow-hidden w-full">
-                            <div class="truncate font-medium">${kid.name}</div>
-                            <div class="text-[10px] flex items-center gap-1">
-                                <span class="w-2 h-2 rounded-full ${kid.isLocked ? 'bg-red-500' : 'bg-green-500'}"></span>
-                                ${kid.isLocked ? 'Bloqueado' : 'Activo'}
+                    <div onclick="window.selectKid('${kid.id}')" class="p-3 rounded-xl cursor-pointer font-bold text-sm flex items-center gap-3 transition ${state.selectedKid?.id === kid.id ? 'bg-white border border-primary-100 shadow-sm text-primary-600' : 'hover:bg-slate-50 text-slate-600'}">
+                        <span class="text-lg">${kid.avatar}</span>
+                        <div class="flex-1 overflow-hidden">
+                            <div class="truncate">${kid.name}</div>
+                            <div class="text-[10px] ${kid.isLocked ? 'text-red-500' : 'text-green-500'} flex items-center gap-1">
+                                <div class="w-1.5 h-1.5 rounded-full bg-current"></div> ${kid.isLocked ? 'Bloqueado' : 'Activo'}
                             </div>
                         </div>
-                    </button>
+                    </div>
                 `).join('')}
-                <button onclick="addKidPrompt()" class="w-full mt-2 border border-slate-700 border-dashed p-3 rounded-xl hover:border-brand-500 hover:text-brand-500 transition flex justify-center md:justify-start gap-3 text-slate-400">
-                    <div class="w-5 h-5">${icons.users}</div> <span class="hidden md:block">Vincular</span>
+                <button onclick="window.addKid()" class="w-full mt-2 border-2 border-dashed border-slate-200 p-3 rounded-xl text-slate-400 hover:border-primary-400 hover:text-primary-500 transition font-bold text-xs flex justify-center gap-2">
+                    ${icon('plus')} VINCULAR NUEVO
                 </button>
             `;
 
-            const content = document.getElementById('parent-content');
-            const title = document.getElementById('header-title');
-
-            if (state.selectedKid) {
-                title.textContent = `Gestionando a ${state.selectedKid.name}`;
-                content.innerHTML = `
+            // Render Content
+            if(!state.selectedKid) {
+                // Dashboard
+                contentEl.innerHTML = `
                     <div class="max-w-4xl mx-auto space-y-6 fade-in">
-                        <div class="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
-                            <div class="p-8 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex flex-col md:flex-row justify-between items-center gap-4">
-                                <div class="flex items-center gap-4">
-                                    <div class="text-6xl">${state.selectedKid.avatar}</div>
-                                    <div>
-                                        <h1 class="text-3xl font-bold">${state.selectedKid.name}</h1>
-                                        <div class="text-sm opacity-80 mt-1 font-mono">CODE: ${state.selectedKid.familyCode}</div>
-                                    </div>
-                                </div>
-                                <button onclick="toggleLock('${state.selectedKid.id}', ${state.selectedKid.isLocked})" 
-                                    class="px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition shadow-xl ${state.selectedKid.isLocked ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}">
-                                    <div class="w-5 h-5">${state.selectedKid.isLocked ? icons.unlock : icons.lock}</div>
-                                    ${state.selectedKid.isLocked ? "DESBLOQUEAR" : "BLOQUEAR"}
-                                </button>
+                        <h2 class="text-2xl font-bold text-slate-800">Resumen Familiar</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                                <div class="text-slate-400 text-xs font-bold uppercase mb-1">Dispositivos</div>
+                                <div class="text-3xl font-bold text-slate-800">${state.kids.length}</div>
+                            </div>
+                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                                <div class="text-slate-400 text-xs font-bold uppercase mb-1">Estado</div>
+                                <div class="text-lg font-bold text-green-600 flex items-center gap-2">Sistema Operativo</div>
                             </div>
                         </div>
+                        ${state.kids.length === 0 ? `
+                            <div class="text-center py-12 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                                <div class="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300 text-2xl">${icon('users')}</div>
+                                <h3 class="font-bold text-slate-800">No hay dispositivos vinculados</h3>
+                                <p class="text-slate-500 text-sm mb-4">Escanea el código del dispositivo de tu hijo.</p>
+                                <button onclick="window.addKid()" class="bg-primary-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg shadow-primary-600/20">Vincular Ahora</button>
+                            </div>
+                        `:''}
                     </div>
                 `;
             } else {
-                title.textContent = "Resumen de Seguridad";
-                content.innerHTML = `
-                    <div class="max-w-5xl mx-auto space-y-8 fade-in">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                                <div class="text-slate-500 text-sm font-medium mb-1">Activos</div>
-                                <div class="text-4xl font-bold text-slate-800">${state.kids.filter(k => !k.isLocked).length}/${state.kids.length}</div>
-                            </div>
-                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                                <div class="text-slate-500 text-sm font-medium mb-1">Alertas Hoy</div>
-                                <div class="text-4xl font-bold text-red-500">${state.alerts.length}</div>
-                            </div>
-                        </div>
-
-                        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
-                                <h3 class="font-bold text-slate-800">Alertas Recientes</h3>
-                            </div>
-                            <div class="divide-y divide-slate-50">
-                                ${state.alerts.length === 0 ? '<div class="p-8 text-center text-slate-400">Sin incidentes.</div>' : 
-                                  state.alerts.map(alert => `
-                                    <div class="p-4 flex items-center gap-4 hover:bg-slate-50 transition">
-                                        <div class="p-2 rounded-lg ${alert.type === 'SOS' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}">
-                                            <div class="w-6 h-6">${icons.shield}</div>
-                                        </div>
-                                        <div class="flex-1">
-                                            <div class="font-bold text-sm text-slate-800">${alert.type === 'SOS' ? 'SOS RECIBIDO' : 'LENGUAJE BLOQUEADO'}</div>
-                                            <div class="text-xs text-slate-500">Usuario: ${alert.kidName} • "${alert.detail}"</div>
-                                        </div>
-                                        <div class="text-xs text-slate-400 font-mono">
-                                            ${alert.timestamp ? new Date(alert.timestamp.toDate()).toLocaleTimeString() : ''}
-                                        </div>
+                // Kid Detail
+                const k = state.selectedKid;
+                contentEl.innerHTML = `
+                    <div class="max-w-2xl mx-auto space-y-6 fade-in">
+                        <div class="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden">
+                            <div class="bg-slate-800 p-8 text-white flex justify-between items-center">
+                                <div class="flex items-center gap-4">
+                                    <div class="text-5xl bg-white/10 p-2 rounded-2xl backdrop-blur-sm">${k.avatar}</div>
+                                    <div>
+                                        <h1 class="text-2xl font-bold">${k.name}</h1>
+                                        <div class="font-mono text-white/50 text-sm tracking-widest mt-1">${k.familyCode}</div>
                                     </div>
-                                `).join('')}
+                                </div>
+                                <button onclick="window.toggleLock('${k.id}', ${k.isLocked})" class="px-6 py-3 rounded-xl font-bold text-sm shadow-xl transition flex items-center gap-2 ${k.isLocked ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}">
+                                    ${icon('lock')} ${k.isLocked ? 'DESBLOQUEAR' : 'BLOQUEAR'}
+                                </button>
+                            </div>
+                            <div class="p-6 bg-slate-50">
+                                <p class="text-sm text-slate-500 text-center">
+                                    Estado: <strong class="${k.isLocked ? 'text-red-500' : 'text-green-500'}">${k.isLocked ? 'BLOQUEADO' : 'ACTIVO'}</strong>
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -443,235 +340,281 @@
             }
         }
 
-        // Global functions for Parent UI
-        window.switchParentView = (v) => { state.selectedKid = null; state.view = 'parent_overview'; refreshParentView(); }
-        window.selectKid = (id) => { state.selectedKid = state.kids.find(k => k.id === id); refreshParentView(); }
-        window.addKidPrompt = () => {
-            showModal({
-                title: 'Vincular Dispositivo',
-                text: 'Introduce el código de 6 caracteres que aparece en la pantalla del niño.',
-                inputPlaceholder: 'CÓDIGO (Ej: A1B2C3)',
-                confirmText: 'Vincular',
-                onConfirm: async (code) => {
-                    if(!code) return;
-                    try {
-                        const snap = await db.collection(COLLECTIONS.USERS).where('familyCode', '==', code.toUpperCase()).get();
-                        if(snap.empty) return showToast("Código no válido", 'error');
-                        const kid = snap.docs[0];
-                        if(kid.data().role !== 'kid') return showToast("Código incorrecto (no es niño)", 'error');
-                        await db.collection(COLLECTIONS.USERS).doc(kid.id).update({ parentId: state.user.uid });
-                        showToast("Dispositivo vinculado correctamente");
-                    } catch(e) { console.error(e); showToast(e.message, 'error'); }
-                }
-            });
+        window.selectKid = (id) => { state.selectedKid = state.kids.find(k => k.id === id); refreshParentUI(); }
+        window.addKid = () => {
+            const modal = showModal(`
+                <div class="p-6">
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">Vincular Dispositivo</h3>
+                    <p class="text-slate-500 text-sm mb-4">Ingresa el código de 6 letras que aparece en la pantalla del niño.</p>
+                    <input id="linkCode" class="w-full text-center text-3xl font-mono uppercase tracking-widest border-2 border-slate-200 rounded-xl p-3 outline-none focus:border-primary-500" placeholder="CODE" maxlength="6">
+                    <button onclick="window.submitLink()" class="w-full bg-primary-600 text-white font-bold py-3 rounded-xl mt-6 shadow-lg">VINCULAR</button>
+                </div>
+            `);
+            window.submitLink = async () => {
+                const code = document.getElementById('linkCode').value.toUpperCase();
+                try {
+                    const snap = await db.collection(COLLECTIONS.USERS).where('familyCode', '==', code).get();
+                    if(snap.empty) return showToast('Código inválido', 'error');
+                    const kid = snap.docs[0];
+                    if(kid.data().role !== 'kid') return showToast('El código no es de un niño', 'error');
+                    
+                    await db.collection(COLLECTIONS.USERS).doc(kid.id).update({ parentId: state.user.uid });
+                    showToast('¡Vinculado con éxito!');
+                    modal.remove();
+                } catch(e) { showToast(e.message, 'error'); }
+            };
         }
-        window.toggleLock = async (id, currentStatus) => {
-            await db.collection(COLLECTIONS.USERS).doc(id).update({ isLocked: !currentStatus });
-        }
+        window.toggleLock = async (id, status) => {
+            await db.collection(COLLECTIONS.USERS).doc(id).update({ isLocked: !status });
+        };
 
-        // --- VISTA: NIÑO ---
-        function renderKidApp() {
+        // >>> VISTA NIÑO <<<
+        function renderKid() {
+            // Verificar Bloqueo
             if (state.userData.isLocked) {
                 appDiv.innerHTML = `
                     <div class="h-full bg-slate-900 text-white flex flex-col items-center justify-center p-8 text-center fade-in">
-                        <div class="mb-6 p-6 bg-slate-800 rounded-full shadow-2xl text-red-500 w-24 h-24 flex items-center justify-center">${icons.lock}</div>
-                        <h1 class="text-3xl font-bold mb-2">Pausa</h1>
-                        <p class="text-slate-400 mb-8">Dispositivo bloqueado por tus padres.</p>
+                        <div class="text-6xl mb-6 animate-bounce">🔒</div>
+                        <h1 class="text-4xl font-bold mb-2">Pausa</h1>
+                        <p class="text-white/50 text-xl">Tu dispositivo está bloqueado.</p>
                     </div>
                 `;
                 return;
             }
 
+            // Verificar Vinculación
             if (!state.userData.parentId) {
                 appDiv.innerHTML = `
-                    <div class="h-full flex flex-col items-center justify-center p-6 bg-gradient-to-b from-kid-400 to-kid-500 text-white text-center fade-in">
-                        <div class="bg-white/20 p-4 rounded-full mb-6 w-20 h-20 flex items-center justify-center">${icons.shield}</div>
-                        <h1 class="text-3xl font-kid font-bold mb-2">¡Casi listo!</h1>
-                        <p class="mb-8 opacity-90">Pide a tus padres que usen este código:</p>
-                        <div class="bg-white text-slate-900 text-4xl font-mono font-bold p-6 rounded-2xl shadow-xl border-4 border-white/50 tracking-widest">
+                    <div class="h-full bg-primary-600 text-white flex flex-col items-center justify-center p-8 text-center fade-in font-fun">
+                        <div class="bg-white/20 p-6 rounded-full mb-6 text-4xl">👋</div>
+                        <h1 class="text-4xl font-bold mb-2">¡Hola ${state.userData.name}!</h1>
+                        <p class="text-white/80 mb-8 text-lg">Dile este código a tus padres:</p>
+                        <div class="bg-white text-primary-600 text-5xl font-mono font-bold px-8 py-6 rounded-3xl shadow-2xl border-4 border-white/50 tracking-widest mb-10">
                             ${state.userData.familyCode}
                         </div>
-                        <button id="btn-logout-kid" class="mt-12 text-white/70 font-bold">Salir</button>
+                        <button onclick="auth.signOut()" class="text-white/60 font-bold hover:text-white">Salir</button>
                     </div>
                 `;
-                document.getElementById('btn-logout-kid').onclick = () => auth.signOut();
                 return;
             }
 
+            // UI Principal Niño
             cleanListeners();
+            // Escuchar chats
             state.unsubscribes.push(
                 db.collection(COLLECTIONS.CHATS).where('participants', 'array-contains', state.user.uid)
                 .onSnapshot(snap => {
                     state.chats = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    refreshKidView();
+                    refreshKidUI(); // Refrescar UI cuando llegan mensajes
                 })
             );
-            
+
+            // Layout Responsive (Tipo WhatsApp Web)
             appDiv.innerHTML = `
-                <div class="h-full flex flex-col bg-white max-w-md mx-auto shadow-2xl relative font-kid">
-                    <div class="bg-kid-400 p-4 pb-6 rounded-b-[30px] shadow-lg z-10 relative overflow-hidden flex-shrink-0">
-                        <div class="flex justify-between items-center relative z-10">
+                <div class="flex h-full bg-white font-fun">
+                    <!-- Lista de Amigos (Sidebar en Desktop, Full en Mobile si no hay chat activo) -->
+                    <div id="kid-list-panel" class="w-full md:w-80 bg-slate-50 border-r border-slate-200 flex flex-col relative z-10 transition-transform duration-300">
+                        <div class="p-4 bg-white border-b border-slate-100 flex items-center justify-between shadow-sm h-16">
                             <div class="flex items-center gap-3">
-                                <div class="text-4xl bg-white rounded-full p-1 shadow-sm border-2 border-kid-200">${state.userData.avatar}</div>
-                                <div>
-                                    <h1 class="font-bold text-xl text-white drop-shadow-sm">${state.userData.name}</h1>
-                                </div>
+                                <div class="text-2xl">${state.userData.avatar}</div>
+                                <div class="font-bold text-slate-700">${state.userData.name}</div>
                             </div>
-                            <button onclick="sendSOS()" class="bg-red-500 text-white w-12 h-12 flex items-center justify-center rounded-full shadow-lg border-4 border-white/30 sos-pulse active:scale-95 transition">
-                                <div class="w-6 h-6">${icons.sos}</div>
+                            <button onclick="auth.signOut()" class="text-slate-400 hover:text-red-500">${icon('logout')}</button>
+                        </div>
+                        <div id="friends-list" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+                        <div class="p-3 border-t bg-white">
+                            <button onclick="window.openScan()" class="w-full bg-primary-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-primary-600/20 flex items-center justify-center gap-2 hover:bg-primary-500 transition">
+                                ${icon('plus')} AÑADIR AMIGO
                             </button>
                         </div>
                     </div>
-                    <div id="kid-content" class="flex-1 overflow-y-auto bg-slate-50 relative pb-20"></div>
-                    <div id="kid-nav" class="absolute bottom-6 left-0 right-0 flex justify-center gap-4 pointer-events-none z-20"></div>
+
+                    <!-- Area Principal (Chat o QR) -->
+                    <div id="kid-main-panel" class="flex-1 bg-white relative flex flex-col hidden md:flex">
+                        <!-- Contenido dinámico aquí -->
+                        <div id="main-content" class="absolute inset-0 flex flex-col"></div>
+                    </div>
                 </div>
             `;
-            refreshKidView();
+            refreshKidUI();
         }
 
-        function refreshKidView() {
-            const content = document.getElementById('kid-content');
-            const nav = document.getElementById('kid-nav');
-            if (!content) return;
+        function refreshKidUI() {
+            const listPanel = document.getElementById('kid-list-panel');
+            const mainPanel = document.getElementById('kid-main-panel');
+            const friendsList = document.getElementById('friends-list');
+            const mainContent = document.getElementById('main-content');
 
-            if (state.activeChat) {
-                nav.innerHTML = '';
-                const msgs = state.activeChat.messages || [];
-                content.innerHTML = `
-                    <div class="flex flex-col h-full bg-white font-sans">
-                        <div class="p-3 border-b flex items-center gap-3 bg-white sticky top-0 z-20 shadow-sm">
-                            <button onclick="closeChat()" class="p-2 bg-slate-100 rounded-full w-10 h-10 flex items-center justify-center text-slate-600 hover:bg-slate-200">${icons.back}</button>
-                            <span class="font-bold text-lg flex-1">Chat</span>
-                        </div>
-                        <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50" id="msg-container">
-                            ${msgs.map(m => `
-                                <div class="flex ${m.senderId === state.user.uid ? 'justify-end' : 'justify-start'}">
-                                    <div class="max-w-[80%] p-3 rounded-2xl text-sm ${m.senderId === state.user.uid ? 'bg-kid-500 text-white message-bubble-me shadow-md' : 'bg-white border border-slate-200 message-bubble-other'}">
-                                        ${m.text}
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                        <div class="p-3 border-t bg-white flex gap-2">
-                            <input id="msg-input" class="flex-1 bg-slate-100 rounded-full px-4 outline-none border-2 border-transparent focus:border-kid-300 transition" placeholder="Escribe..." autocomplete="off">
-                            <button onclick="sendMessage()" class="bg-kid-500 text-white w-12 h-12 flex items-center justify-center rounded-full shadow-lg hover:bg-kid-600 transition">${icons.send}</button>
-                        </div>
-                    </div>
-                `;
-                const container = document.getElementById('msg-container');
-                container.scrollTop = container.scrollHeight;
-                document.getElementById('msg-input').onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
+            if(!listPanel) return;
+
+            // Manejo Responsive de Paneles
+            if (window.innerWidth < 768) {
+                if (state.activeChatId) {
+                    listPanel.classList.add('hidden');
+                    mainPanel.classList.remove('hidden');
+                } else {
+                    listPanel.classList.remove('hidden');
+                    mainPanel.classList.add('hidden');
+                }
             } else {
-                content.innerHTML = `
-                    <div class="p-4 space-y-4">
-                        ${state.chats.length === 0 ? `
-                            <div class="text-center py-20 opacity-50">
-                                <div class="text-6xl mb-4 grayscale">🦕</div>
-                                <p class="font-kid text-xl text-slate-400">¡Añade amigos!</p>
-                            </div>
-                        ` : state.chats.map(chat => {
-                            const otherId = chat.participants.find(p => p !== state.user.uid);
-                            const name = chat.names?.[otherId] || 'Amigo';
-                            const avatar = chat.avatars?.[otherId] || '🙂';
-                            const lastMsg = chat.messages[chat.messages.length-1]?.text || "¡Saluda!";
-                            return `
-                                <div onclick="openChat('${chat.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 active:scale-95 transition cursor-pointer">
-                                    <div class="text-3xl bg-slate-100 w-12 h-12 flex items-center justify-center rounded-full">${avatar}</div>
-                                    <div class="flex-1 min-w-0">
-                                        <h3 class="font-bold text-slate-800 font-kid text-lg">${name}</h3>
-                                        <p class="text-slate-400 text-sm truncate font-sans">${lastMsg}</p>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
+                listPanel.classList.remove('hidden');
+                mainPanel.classList.remove('hidden');
+            }
+
+            // 1. Render Lista Amigos + Mi Código (Arriba)
+            let listHTML = `
+                <div onclick="window.showMyCode()" class="bg-indigo-50 border border-indigo-100 p-3 rounded-xl flex items-center gap-3 cursor-pointer hover:bg-indigo-100 transition mb-2">
+                    <div class="bg-white p-2 rounded-lg text-indigo-600">${icon('qr')}</div>
+                    <div class="font-bold text-indigo-900 text-sm">Ver Mi Código</div>
+                </div>
+            `;
+
+            if (state.chats.length === 0) {
+                listHTML += `
+                    <div class="text-center py-10 opacity-50">
+                        <div class="text-4xl mb-2">🦕</div>
+                        <div class="font-bold text-slate-400">¡Sin amigos aún!</div>
                     </div>
                 `;
-                nav.innerHTML = `
-                    <button onclick="scanFriend()" class="pointer-events-auto bg-brand-600 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-2 font-bold transform hover:scale-105 transition border-4 border-white font-sans">
-                        <div class="w-5 h-5">${icons.camera}</div> Añadir Amigo
-                    </button>
+            } else {
+                listHTML += state.chats.map(chat => {
+                    const otherId = chat.participants.find(p => p !== state.user.uid);
+                    const name = chat.names[otherId];
+                    const avatar = chat.avatars[otherId];
+                    const isActive = state.activeChatId === chat.id;
+                    const lastMsg = chat.messages.length > 0 ? chat.messages[chat.messages.length - 1].text : '¡Saluda!';
+                    
+                    return `
+                        <div onclick="window.openChat('${chat.id}')" class="p-3 rounded-xl flex items-center gap-3 cursor-pointer transition ${isActive ? 'bg-primary-50 border border-primary-100' : 'bg-white border border-transparent hover:bg-white shadow-sm'}">
+                            <div class="text-2xl">${avatar}</div>
+                            <div class="flex-1 overflow-hidden">
+                                <div class="font-bold text-slate-700 text-sm">${name}</div>
+                                <div class="text-xs text-slate-400 truncate">${lastMsg}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            friendsList.innerHTML = listHTML;
+
+            // 2. Render Main Content (Chat o Empty)
+            if (state.activeChatId) {
+                // Buscar datos frescos del chat usando ID
+                const chat = state.chats.find(c => c.id === state.activeChatId);
+                if (!chat) return; // Puede pasar si se borra el chat
+
+                const otherId = chat.participants.find(p => p !== state.user.uid);
+                const name = chat.names[otherId];
+                
+                mainContent.innerHTML = `
+                    <div class="h-16 border-b flex items-center justify-between px-4 bg-white shadow-sm z-10">
+                        <div class="flex items-center gap-3">
+                            <button onclick="window.closeChat()" class="md:hidden p-2 bg-slate-100 rounded-full text-slate-500">↩</button>
+                            <div class="font-bold text-lg text-slate-800">${name}</div>
+                        </div>
+                    </div>
+                    <div id="msg-area" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50">
+                        ${chat.messages.map(m => `
+                            <div class="flex ${m.senderId === state.user.uid ? 'justify-end' : 'justify-start'}">
+                                <div class="max-w-[75%] px-4 py-2 text-sm font-medium shadow-sm ${m.senderId === state.user.uid ? 'chat-bubble-me' : 'chat-bubble-them'}">
+                                    ${m.text}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="p-3 bg-white border-t flex gap-2">
+                        <input id="msg-input" class="flex-1 bg-slate-100 rounded-full px-5 outline-none border-2 border-transparent focus:border-primary-300 transition" placeholder="Mensaje..." autocomplete="off">
+                        <button onclick="window.sendMsg()" class="bg-primary-600 text-white w-12 h-12 flex items-center justify-center rounded-full shadow-lg hover:bg-primary-500 transition">${icon('send')}</button>
+                    </div>
+                `;
+                
+                const area = document.getElementById('msg-area');
+                area.scrollTop = area.scrollHeight;
+                
+                const input = document.getElementById('msg-input');
+                input.onkeypress = (e) => { if(e.key==='Enter') window.sendMsg(); };
+                // Keep focus if desktop
+                if(window.innerWidth > 768) input.focus();
+
+            } else {
+                // Estado Vacío / QR Grande
+                mainContent.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center text-center p-8 bg-slate-50/50">
+                        <div class="bg-white p-6 rounded-3xl shadow-xl border-4 border-primary-100 mb-6 relative overflow-hidden">
+                            <div class="absolute inset-0 qr-noise opacity-10"></div>
+                            <div class="relative z-10 text-6xl font-mono font-bold tracking-widest text-slate-800">${state.userData.familyCode}</div>
+                        </div>
+                        <h2 class="text-2xl font-bold text-slate-700 mb-2">Tu Código de Amigo</h2>
+                        <p class="text-slate-400 max-w-xs">Comparte este código con tus amigos para empezar a chatear.</p>
+                    </div>
                 `;
             }
         }
 
-        // Global functions for Kid UI
-        window.sendSOS = () => {
-            showModal({
-                title: '¿EMERGENCIA?',
-                text: 'Esto enviará una alerta inmediata a tus padres.',
-                confirmText: 'SÍ, ENVIAR AYUDA',
-                confirmColor: 'bg-red-600',
-                onConfirm: async () => {
-                    try {
-                        await db.collection(COLLECTIONS.ALERTS).add({
-                            type: 'SOS',
-                            kidId: state.user.uid,
-                            kidName: state.userData.name,
-                            parentId: state.userData.parentId,
-                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                            detail: "BOTÓN DE PÁNICO PRESIONADO"
-                        });
-                        showToast("🚨 ALERTA ENVIADA");
-                    } catch(e) { console.error(e); }
-                }
-            });
+        window.openChat = (id) => { state.activeChatId = id; refreshKidUI(); }
+        window.closeChat = () => { state.activeChatId = null; refreshKidUI(); }
+        
+        window.showMyCode = () => { state.activeChatId = null; refreshKidUI(); } // En desktop muestra el panel derecho vacio (que tiene el QR)
+
+        window.openScan = () => {
+            const modal = showModal(`
+                <div class="p-6 text-center">
+                    <div class="bg-primary-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-primary-600">${icon('users')}</div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">Añadir Amigo</h3>
+                    <p class="text-slate-500 text-sm mb-6">Escribe el código de 6 letras de tu amigo.</p>
+                    <input id="friendCode" class="w-full text-center text-3xl font-mono uppercase tracking-widest border-2 border-slate-200 rounded-xl p-3 outline-none focus:border-primary-500 mb-6" maxlength="6">
+                    <button onclick="window.addFriendAction()" class="w-full bg-primary-600 text-white font-bold py-3 rounded-xl shadow-lg">BUSCAR</button>
+                </div>
+            `);
+            window.addFriendAction = async () => {
+                const code = document.getElementById('friendCode').value.toUpperCase();
+                if(code.length < 6) return;
+                try {
+                    const snap = await db.collection(COLLECTIONS.USERS).where('familyCode', '==', code).get();
+                    if(snap.empty) return showToast('Código no encontrado', 'error');
+                    const friend = snap.docs[0].data();
+                    const friendId = snap.docs[0].id;
+                    
+                    if(friend.role !== 'kid') return showToast('Solo puedes añadir a otros niños', 'error');
+                    if(friendId === state.user.uid) return showToast('No puedes añadirte a ti mismo', 'error');
+
+                    // Verificar si ya existe
+                    const exists = state.chats.find(c => c.participants.includes(friendId));
+                    if(exists) { showToast('Ya sois amigos'); modal.remove(); return window.openChat(exists.id); }
+
+                    await db.collection(COLLECTIONS.CHATS).add({
+                        participants: [state.user.uid, friendId],
+                        names: { [state.user.uid]: state.userData.name, [friendId]: friend.name },
+                        avatars: { [state.user.uid]: state.userData.avatar, [friendId]: friend.avatar },
+                        messages: [],
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    
+                    showToast('¡Amigo añadido!');
+                    modal.remove();
+                } catch(e) { showToast(e.message, 'error'); }
+            }
         }
 
-        window.scanFriend = () => {
-            showModal({
-                title: 'Añadir Amigo',
-                text: 'Pide a tu amigo que te diga su código personal.',
-                inputPlaceholder: 'CÓDIGO DE AMIGO',
-                confirmText: 'Buscar',
-                onConfirm: async (code) => {
-                    if(!code) return;
-                    try {
-                        const snap = await db.collection(COLLECTIONS.USERS).where('familyCode', '==', code.toUpperCase()).get();
-                        if(snap.empty) return showToast("Código no encontrado", 'error');
-                        const friend = snap.docs[0].data();
-                        if(friend.role !== 'kid') return showToast("Solo puedes añadir a otros niños", 'error');
-                        
-                        await db.collection(COLLECTIONS.CHATS).add({
-                            participants: [state.user.uid, snap.docs[0].id],
-                            names: { [state.user.uid]: state.userData.name, [snap.docs[0].id]: friend.name },
-                            avatars: { [state.user.uid]: state.userData.avatar, [snap.docs[0].id]: friend.avatar },
-                            messages: [],
-                            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                        showToast("¡Amigo añadido!");
-                    } catch(e) { console.error(e); showToast(e.message, 'error'); }
-                }
-            });
-        }
-
-        window.openChat = (id) => { state.activeChat = state.chats.find(c => c.id === id); refreshKidView(); }
-        window.closeChat = () => { state.activeChat = null; refreshKidView(); }
-
-        window.sendMessage = async () => {
+        window.sendMsg = async () => {
             const input = document.getElementById('msg-input');
             const text = input.value.trim();
             if(!text) return;
 
-            const hasBadWord = BAD_WORDS.some(word => text.toLowerCase().includes(word));
-            if(hasBadWord) {
+            // Filtro local inmediato
+            if(BAD_WORDS.some(w => text.toLowerCase().includes(w))) {
                 input.value = "";
                 await db.collection(COLLECTIONS.ALERTS).add({
-                    type: 'BAD_WORD',
-                    kidId: state.user.uid,
-                    kidName: state.userData.name,
-                    parentId: state.userData.parentId,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    detail: text
+                    type: 'BAD_WORD', kidId: state.user.uid, parentId: state.userData.parentId,
+                    kidName: state.userData.name, detail: text, timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                return showToast("⚠️ Mensaje bloqueado. Sé amable.", 'error');
+                return showToast('⚠️ ¡Palabra fea bloqueada!', 'error');
             }
 
             try {
-                await db.collection(COLLECTIONS.CHATS).doc(state.activeChat.id).update({
+                await db.collection(COLLECTIONS.CHATS).doc(state.activeChatId).update({
                     messages: firebase.firestore.FieldValue.arrayUnion({
-                        text, 
-                        senderId: state.user.uid, 
-                        timestamp: new Date().toISOString()
+                        text, senderId: state.user.uid, timestamp: new Date().toISOString()
                     }),
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
                 });
@@ -679,27 +622,19 @@
             } catch(e) { console.error(e); }
         }
 
-        // --- ORQUESTADOR PRINCIPAL ---
+        // --- 6. ARRANQUE ---
         auth.onAuthStateChanged(async (u) => {
             if (u) {
-                if(state.profileUnsub) state.profileUnsub();
-                state.profileUnsub = db.collection(COLLECTIONS.USERS).doc(u.uid).onSnapshot(doc => {
+                // Escuchar cambios en el perfil (Bloqueos en tiempo real)
+                db.collection(COLLECTIONS.USERS).doc(u.uid).onSnapshot(doc => {
                     if(doc.exists) {
                         state.user = u;
                         state.userData = doc.data();
-                        state.userData.role === 'parent' ? renderParentDashboard() : renderKidApp();
-                    } else {
-                         console.warn("Esperando perfil...");
+                        state.userData.role === 'parent' ? renderParent() : renderKid();
                     }
-                }, error => {
-                    console.error(error);
-                    showToast("Error de acceso a datos", 'error');
-                    auth.signOut();
                 });
             } else {
                 state.user = null;
-                state.userData = null;
-                if(state.profileUnsub) state.profileUnsub();
                 cleanListeners();
                 renderAuth();
             }
