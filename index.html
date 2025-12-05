@@ -2,43 +2,85 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafeChat Family - Protección Total</title>
-    
-    <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    
-    <!-- Babel -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SafeChat Pro - Vanilla JS</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
 
     <!-- Firebase SDKs (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 900: '#1e3a8a' },
+                        kid: { 100: '#fef3c7', 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' },
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        kid: ['Fredoka', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        html, body, #root { height: 100%; width: 100%; margin: 0; padding: 0; background-color: #f8fafc; font-family: 'Nunito', sans-serif; overflow: hidden; }
-        .kid-font { font-family: 'Fredoka', sans-serif; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .slide-in { animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .glass-panel { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
+        /* Reset y Full Screen Real */
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Evita scroll en el body */
+            background-color: #f8fafc;
+            touch-action: manipulation;
+        }
+        #app {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        /* Utilidades */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .sos-pulse { animation: sos 1.5s infinite; }
+        @keyframes sos { 
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 
+            70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); } 
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 
+        }
+        .message-bubble-me { border-top-right-radius: 0; }
+        .message-bubble-other { border-top-left-radius: 0; }
+        
+        /* Animaciones */
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
-    <div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-        
-        // --- FIREBASE INIT ---
+    <!-- Contenedor Principal -->
+    <div id="app">
+        <!-- Pantalla de Carga Inicial -->
+        <div id="loading" class="h-full w-full flex items-center justify-center bg-slate-900 text-white font-bold tracking-widest z-50 fixed top-0 left-0">
+            CARGANDO SISTEMA...
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURACIÓN E INICIALIZACIÓN ---
         const firebaseConfig = {
             apiKey: "AIzaSyC1XbhA7TTz7gn-3_SFJ53p7DPfq36eRdg",
             authDomain: "safechat-224e2.firebaseapp.com",
@@ -52,580 +94,617 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'safechat-v2';
-
-        const USERS_COLLECTION = `artifacts/${appId}/public/data/users`;
-        const CHATS_COLLECTION = `artifacts/${appId}/public/data/chats`;
-
-        // --- ICONS ---
-        const Icon = ({ name, size=24, className="" }) => {
-            const icons = {
-                shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>,
-                users: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
-                clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
-                qr: <><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><path d="M3 14h1v1H3z"/></>,
-                plus: <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
-                logOut: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>,
-                camera: <><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></>,
-                back: <path d="m15 18-6-6 6-6"/>,
-                settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></>
-            };
-            return <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name]}</svg>;
+        const APP_ID = 'safechat-pro-v3-vanilla'; 
+        
+        const COLLECTIONS = {
+            USERS: `artifacts/${APP_ID}/public/data/users`,
+            CHATS: `artifacts/${APP_ID}/public/data/chats`,
+            ALERTS: `artifacts/${APP_ID}/public/data/alerts`
         };
 
-        // --- COMPONENTS ---
+        const BAD_WORDS = ["tonto", "estupido", "idiota", "matar", "odio", "feo", "gordo"];
+        const AVATARS = ["🦁", "🦊", "🐼", "🐨", "🐯", "🦄", "🦕", "🐙", "🚀", "⭐"];
 
-        const DynamicQR = ({ value }) => {
-            const canvasRef = useRef(null);
-            const [seed, setSeed] = useState(0);
+        // --- 2. SISTEMA DE UI (MODALES Y TOASTS) ---
+        // Reemplaza alert(), confirm(), prompt() nativos
+        
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            const colors = type === 'error' ? 'bg-red-500' : 'bg-green-500';
+            toast.className = `fixed top-4 right-4 ${colors} text-white px-6 py-4 rounded-xl shadow-2xl z-[100] font-bold text-sm transform transition-all duration-300 slide-up flex items-center gap-3`;
+            toast.innerHTML = `
+                <span>${type === 'error' ? '⚠️' : '✅'}</span>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('opacity-0', '-translate-y-4');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
 
-            useEffect(() => {
-                const interval = setInterval(() => {
-                    setSeed(prev => prev + 1);
-                    drawNoise();
-                }, 500); // 0.5s refresh
-                return () => clearInterval(interval);
-            }, []);
+        function showModal({ title, text, inputPlaceholder, onConfirm, confirmText = 'Aceptar', confirmColor = 'bg-brand-600' }) {
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] flex items-center justify-center p-4 fade-in';
+            
+            let inputHtml = '';
+            if (inputPlaceholder) {
+                inputHtml = `<input id="modal-input" class="w-full bg-slate-100 border border-slate-200 rounded-xl p-4 mt-4 focus:ring-2 focus:ring-brand-500 outline-none text-slate-800" placeholder="${inputPlaceholder}" autocomplete="off">`;
+            }
 
-            const drawNoise = () => {
-                const canvas = canvasRef.current;
-                if (!canvas) return;
-                const ctx = canvas.getContext('2d');
-                const w = canvas.width;
-                const h = canvas.height;
-                const pixelSize = 15;
-                ctx.fillStyle = "white";
-                ctx.fillRect(0, 0, w, h);
-                ctx.fillStyle = "black";
-                for (let y = 0; y < h; y += pixelSize) {
-                    for (let x = 0; x < w; x += pixelSize) {
-                        if (Math.random() > 0.5) ctx.fillRect(x, y, pixelSize, pixelSize);
-                    }
-                }
-                // Positioning markers
-                const drawMarker = (x, y) => {
-                    ctx.fillRect(x, y, 50, 50);
-                    ctx.clearRect(x+10, y+10, 30, 30);
-                    ctx.fillRect(x+15, y+15, 20, 20);
-                }
-                drawMarker(10, 10);
-                drawMarker(w-60, 10);
-                drawMarker(10, h-60);
-            };
-
-            return (
-                <div className="relative p-4 bg-white rounded-xl shadow-lg border-4 border-blue-400 inline-block">
-                    <canvas ref={canvasRef} width={180} height={180} className="mb-2" />
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/90 px-2 py-1 rounded text-xs font-mono font-bold">
-                        {value}
+            overlay.innerHTML = `
+                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100 slide-up">
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">${title}</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed">${text}</p>
+                        ${inputHtml}
                     </div>
-                    <div className="flex items-center justify-center gap-2 text-blue-600 font-bold text-[10px] animate-pulse uppercase tracking-wider">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        QR Seguro: Cambia cada 0.5s
+                    <div class="bg-slate-50 p-4 flex gap-3">
+                        <button id="modal-cancel" class="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-200 rounded-xl transition">Cancelar</button>
+                        <button id="modal-confirm" class="flex-1 py-3 ${confirmColor} text-white font-bold rounded-xl shadow-lg hover:opacity-90 transition">${confirmText}</button>
                     </div>
                 </div>
-            );
+            `;
+
+            document.body.appendChild(overlay);
+
+            const input = overlay.querySelector('#modal-input');
+            const close = () => overlay.remove();
+
+            if (input) setTimeout(() => input.focus(), 100);
+
+            overlay.querySelector('#modal-cancel').onclick = close;
+            overlay.querySelector('#modal-confirm').onclick = () => {
+                const val = input ? input.value.trim() : true;
+                if (input && !val) return input.focus();
+                onConfirm(val);
+                close();
+            };
+            
+            if (input) {
+                input.onkeypress = (e) => {
+                    if (e.key === 'Enter') overlay.querySelector('#modal-confirm').click();
+                };
+            }
+        }
+
+        // --- 3. ESTADO GLOBAL ---
+        const state = {
+            user: null, userData: null, view: 'loading',
+            kids: [], alerts: [], chats: [],
+            selectedKid: null, activeChat: null,
+            unsubscribes: [], profileUnsub: null
         };
 
-        // --- PARENT DASHBOARD ---
-        const ParentDashboard = ({ user, userData }) => {
-            const [children, setChildren] = useState([]);
-            const [selectedChild, setSelectedChild] = useState(null);
-            const [view, setView] = useState('list'); // 'list', 'child_detail'
-            const [showLinkModal, setShowLinkModal] = useState(false);
-            const [linkCode, setLinkCode] = useState("");
-            
-            // Listen to children updates instantly
-            useEffect(() => {
-                const unsub = db.collection(USERS_COLLECTION)
-                    .where('parentId', '==', user.uid)
-                    .onSnapshot(snap => {
-                        const kids = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                        setChildren(kids);
-                    });
-                return () => unsub();
-            }, [user.uid]);
+        // --- 4. ICONOS SVG ---
+        const icons = {
+            shield: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+            users: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+            lock: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+            unlock: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`,
+            home: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+            chat: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+            send: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`,
+            camera: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
+            qr: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><path d="M3 14h1v1H3z"/><path d="M5 14h1v1H5z"/><path d="M3 16h1v1H3z"/><path d="M5 16h1v1H5z"/><path d="M7 14h1v1H7z"/><path d="M9 14h1v1H9z"/><path d="M7 16h1v1H7z"/><path d="M9 16h1v1H9z"/><path d="M7 18h1v1H7z"/><path d="M9 18h1v1H9z"/></svg>`,
+            logout: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`,
+            sos: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+            back: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`
+        };
 
-            const handleLinkChild = async () => {
-                if(!linkCode) return;
-                try {
-                    const snap = await db.collection(USERS_COLLECTION).where('familyCode', '==', linkCode.toUpperCase().trim()).get();
-                    if(snap.empty) { alert("Código no válido"); return; }
-                    
-                    const childDoc = snap.docs[0];
-                    if(childDoc.data().role !== 'kid') { alert("Este código no pertenece a un perfil de niño."); return; }
-                    
-                    // Update child with parent ID
-                    await db.collection(USERS_COLLECTION).doc(childDoc.id).update({
-                        parentId: user.uid,
-                        linkedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    
-                    setLinkCode("");
-                    setShowLinkModal(false);
-                } catch(e) {
-                    alert("Error: " + e.message);
-                }
-            };
+        const appDiv = document.getElementById('app');
 
-            const updateTimeLimit = async (childId, minutes) => {
-                await db.collection(USERS_COLLECTION).doc(childId).update({
-                    dailyLimit: minutes
+        function cleanListeners() {
+            state.unsubscribes.forEach(u => u());
+            state.unsubscribes = [];
+        }
+
+        // --- VISTA: AUTENTICACIÓN ---
+        function renderAuth() {
+            let isRegister = false;
+            let role = 'parent';
+            let selectedAvatar = AVATARS[0];
+
+            const renderForm = () => {
+                appDiv.innerHTML = `
+                    <div class="h-full w-full flex items-center justify-center bg-slate-900 p-6 relative overflow-hidden fade-in">
+                         <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+                         <div class="bg-white/10 backdrop-blur-xl p-8 rounded-3xl w-full max-w-md border border-white/20 shadow-2xl relative z-10">
+                            <div class="text-center mb-8">
+                                <div class="w-16 h-16 bg-gradient-to-tr from-brand-500 to-kid-400 rounded-2xl mx-auto flex items-center justify-center shadow-lg mb-4 text-white">
+                                    ${icons.shield}
+                                </div>
+                                <h1 class="text-3xl font-bold text-white mb-1">SafeChat Pro</h1>
+                                <p class="text-slate-400 text-sm">Plataforma Segura V3.0 - Vanilla JS</p>
+                            </div>
+
+                            <div class="flex bg-black/20 p-1 rounded-xl mb-6">
+                                <button id="btn-login-mode" class="flex-1 py-2 rounded-lg text-sm font-bold transition ${!isRegister ? 'bg-white text-slate-900 shadow' : 'text-slate-400'}">Entrar</button>
+                                <button id="btn-register-mode" class="flex-1 py-2 rounded-lg text-sm font-bold transition ${isRegister ? 'bg-white text-slate-900 shadow' : 'text-slate-400'}">Registrar</button>
+                            </div>
+
+                            <form id="auth-form" class="space-y-4">
+                                ${isRegister ? `
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <button type="button" class="btn-role p-3 rounded-xl border-2 font-bold text-sm transition ${role==='parent'?'border-brand-500 bg-brand-500/20 text-brand-300':'border-slate-700 text-slate-500'}" data-role="parent">Soy Padre</button>
+                                        <button type="button" class="btn-role p-3 rounded-xl border-2 font-bold text-sm transition ${role==='kid'?'border-kid-500 bg-kid-500/20 text-kid-300':'border-slate-700 text-slate-500'}" data-role="kid">Soy Niño</button>
+                                    </div>
+                                    <input id="input-name" placeholder="Nombre Completo" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:border-brand-500 outline-none transition">
+                                    ${role === 'kid' ? `
+                                        <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" id="avatar-list">
+                                            ${AVATARS.map(a => `<button type="button" class="btn-avatar text-2xl p-2 rounded-lg transition ${selectedAvatar === a ? 'bg-white/20 scale-110' : 'opacity-50'}" data-av="${a}">${a}</button>`).join('')}
+                                        </div>
+                                    ` : ''}
+                                ` : ''}
+                                <input id="input-email" type="email" placeholder="Correo Electrónico" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:border-brand-500 outline-none transition">
+                                <input id="input-pass" type="password" placeholder="Contraseña" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-white focus:border-brand-500 outline-none transition">
+                                <button type="submit" id="btn-submit" class="w-full bg-gradient-to-r from-brand-600 to-brand-500 text-white font-bold py-4 rounded-xl shadow-lg hover:scale-[1.02] transition">
+                                    ${isRegister ? 'Crear Cuenta' : 'Iniciar Sesión'}
+                                </button>
+                            </form>
+                         </div>
+                    </div>
+                `;
+
+                // Listeners
+                document.getElementById('btn-login-mode').onclick = () => { isRegister = false; renderForm(); };
+                document.getElementById('btn-register-mode').onclick = () => { isRegister = true; renderForm(); };
+                
+                document.querySelectorAll('.btn-role').forEach(btn => {
+                    btn.onclick = (e) => { role = e.target.dataset.role; renderForm(); }
                 });
+
+                document.querySelectorAll('.btn-avatar').forEach(btn => {
+                    btn.onclick = (e) => { selectedAvatar = e.target.dataset.av; renderForm(); }
+                });
+
+                document.getElementById('auth-form').onsubmit = async (e) => {
+                    e.preventDefault();
+                    
+                    const btn = document.getElementById('btn-submit');
+                    const originalText = btn.innerText;
+                    btn.innerText = "Procesando...";
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+                    const email = document.getElementById('input-email').value;
+                    const pass = document.getElementById('input-pass').value;
+                    
+                    try {
+                        if(isRegister) {
+                            const name = document.getElementById('input-name').value;
+                            const r = await auth.createUserWithEmailAndPassword(email, pass);
+                            await db.collection(COLLECTIONS.USERS).doc(r.user.uid).set({
+                                name, email, role, 
+                                avatar: role === 'kid' ? selectedAvatar : '👤',
+                                familyCode: Math.random().toString(36).substring(2,8).toUpperCase(),
+                                parentId: null, isLocked: false, createdAt: new Date().toISOString()
+                            });
+                        } else {
+                            await auth.signInWithEmailAndPassword(email, pass);
+                        }
+                    } catch(err) {
+                        showToast(err.message, 'error');
+                        btn.innerText = originalText;
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                };
             };
+            renderForm();
+        }
 
-            return (
-                <div className="flex h-full bg-slate-100">
-                    {/* Sidebar */}
-                    <div className="w-20 md:w-64 bg-slate-900 text-white flex flex-col items-center md:items-start py-6">
-                        <div className="px-4 mb-8 flex items-center gap-3">
-                            <div className="bg-blue-600 p-2 rounded-lg"><Icon name="shield" /></div>
-                            <span className="font-bold text-xl hidden md:block">SafeParent</span>
-                        </div>
-                        
-                        <div className="flex-1 w-full px-2 space-y-2">
-                            <button onClick={() => {setSelectedChild(null); setView('list')}} className={`w-full p-3 rounded-xl flex items-center gap-3 transition ${!selectedChild ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
-                                <Icon name="users" /> <span className="hidden md:block">Mis Hijos</span>
-                            </button>
-                            {children.map(child => (
-                                <button key={child.id} onClick={() => {setSelectedChild(child); setView('child_detail')}} className={`w-full p-3 rounded-xl flex items-center gap-3 transition ${selectedChild?.id === child.id ? 'bg-slate-800 text-white border-l-4 border-blue-500' : 'text-slate-400 hover:bg-slate-800'}`}>
-                                    <span className="text-xl">🦁</span> <span className="hidden md:block truncate">{child.name}</span>
-                                </button>
-                            ))}
-                        </div>
+        // --- VISTA: PADRE ---
+        function renderParentDashboard() {
+            cleanListeners();
+            
+            // Kids Listener
+            state.unsubscribes.push(
+                db.collection(COLLECTIONS.USERS).where('parentId', '==', state.user.uid)
+                .onSnapshot(snap => {
+                    state.kids = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    refreshParentView();
+                })
+            );
 
-                        <div className="mt-auto px-4 w-full">
-                            <button onClick={() => auth.signOut()} className="flex items-center gap-2 text-slate-500 hover:text-white transition">
-                                <Icon name="logOut" /> <span className="hidden md:block">Salir</span>
+            // Alerts Listener
+            state.unsubscribes.push(
+                db.collection(COLLECTIONS.ALERTS).where('parentId', '==', state.user.uid).orderBy('timestamp', 'desc').limit(20)
+                .onSnapshot(snap => {
+                    state.alerts = snap.docs.map(d => d.data());
+                    refreshParentView();
+                })
+            );
+
+            appDiv.innerHTML = `
+                <div class="flex h-full bg-slate-50 font-sans">
+                    <div class="w-16 md:w-64 bg-slate-900 text-slate-300 flex flex-col py-6 shadow-2xl z-20 flex-shrink-0">
+                        <div class="px-4 mb-8 flex items-center justify-center md:justify-start gap-3 text-white">
+                            <div class="bg-brand-600 p-2 rounded-lg"><div class="w-5 h-5">${icons.shield}</div></div>
+                            <span class="font-bold text-lg hidden md:block">SafeChat Pro</span>
+                        </div>
+                        <nav class="flex-1 space-y-2 px-2" id="parent-nav"></nav>
+                        <div class="px-4 pt-4 border-t border-slate-800">
+                            <button id="btn-logout" class="flex items-center gap-2 hover:text-white transition w-full justify-center md:justify-start">
+                                <div class="w-5 h-5">${icons.logout}</div> <span class="hidden md:block">Salir</span>
                             </button>
                         </div>
                     </div>
-
-                    {/* Main Content */}
-                    <div className="flex-1 flex flex-col h-full overflow-hidden">
-                        {/* Header */}
-                        <div className="bg-white border-b border-gray-200 p-6 flex justify-between items-center">
-                            <h2 className="text-2xl font-bold text-slate-800">
-                                {selectedChild ? `Gestionando a ${selectedChild.name}` : 'Panel General'}
-                            </h2>
-                            {!selectedChild && (
-                                <button onClick={() => setShowLinkModal(true)} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm">
-                                    <Icon name="plus" size={18} /> Vincular Hijo
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-6">
-                            {!selectedChild ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {/* Stats Cards */}
-                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div>
-                                                <p className="text-slate-500 text-sm">Hijos Protegidos</p>
-                                                <h3 className="text-3xl font-bold text-slate-800">{children.length}</h3>
-                                            </div>
-                                            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><Icon name="users" /></div>
-                                        </div>
-                                    </div>
-                                    {children.length === 0 && (
-                                        <div className="col-span-full text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200">
-                                            <div className="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-4"><Icon name="plus" size={32}/></div>
-                                            <h3 className="text-lg font-bold text-slate-700">Aún no has vinculado ningún dispositivo</h3>
-                                            <p className="text-slate-500 mb-6">Usa el código que aparece en la pantalla de tu hijo.</p>
-                                            <button onClick={() => setShowLinkModal(true)} className="text-blue-600 font-bold hover:underline">Vincular ahora</button>
-                                        </div>
-                                    )}
+                    <div class="flex-1 flex flex-col h-full overflow-hidden relative">
+                        <header class="bg-white h-16 border-b flex items-center justify-between px-6 shadow-sm flex-shrink-0">
+                            <h2 class="text-xl font-bold text-slate-800" id="header-title">Resumen</h2>
+                            <div class="flex items-center gap-3">
+                                <div class="text-right hidden sm:block">
+                                    <div class="text-sm font-bold text-slate-800">${state.userData.name}</div>
+                                    <div class="text-xs text-slate-500">Admin</div>
                                 </div>
-                            ) : (
-                                <div className="space-y-6">
-                                    {/* Child Settings */}
-                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                                        <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><Icon name="settings" /> Configuración de Tiempo</h3>
-                                        <div className="space-y-4">
-                                            <div>
-                                                <div className="flex justify-between mb-2">
-                                                    <label className="text-sm font-bold text-slate-600">Límite Diario</label>
-                                                    <span className="text-blue-600 font-bold">{selectedChild.dailyLimit || 120} min</span>
-                                                </div>
-                                                <input 
-                                                    type="range" 
-                                                    min="30" 
-                                                    max="240" 
-                                                    step="30"
-                                                    value={selectedChild.dailyLimit || 120} 
-                                                    onChange={(e) => updateTimeLimit(selectedChild.id, parseInt(e.target.value))}
-                                                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                                                />
-                                                <p className="text-xs text-slate-400 mt-2">La app se bloqueará cuando se alcance el límite.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Recent Chats Preview (Mock for now, normally would query chats) */}
-                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                                        <h3 className="text-lg font-bold text-slate-800 mb-4">Actividad Reciente</h3>
-                                        <p className="text-slate-500 italic">Selecciona "Ver Chats" para auditar conversaciones detalladas.</p>
-                                        <button className="mt-4 w-full border border-blue-200 text-blue-600 py-3 rounded-xl font-bold hover:bg-blue-50 transition">
-                                            Abrir Monitor de Chats
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                                <div class="w-10 h-10 bg-brand-100 rounded-full flex items-center justify-center text-brand-600 font-bold border-2 border-brand-200">${state.userData.name[0]}</div>
+                            </div>
+                        </header>
+                        <main id="parent-content" class="flex-1 overflow-y-auto p-4 md:p-8"></main>
                     </div>
+                </div>
+            `;
 
-                    {/* Modal Vincular */}
-                    {showLinkModal && (
-                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
-                                <h3 className="text-2xl font-bold mb-2">Vincular Dispositivo Hijo</h3>
-                                <p className="text-slate-500 mb-6">Ingresa el código que aparece en la pantalla de inicio de la app del niño.</p>
-                                <input 
-                                    type="text" 
-                                    placeholder="CÓDIGO (Ej: A1B2C3)" 
-                                    className="w-full text-center text-3xl font-mono uppercase border-2 border-slate-200 rounded-xl p-4 mb-6 focus:border-blue-500 outline-none tracking-widest"
-                                    value={linkCode}
-                                    onChange={e => setLinkCode(e.target.value)}
-                                />
-                                <div className="flex gap-3">
-                                    <button onClick={() => setShowLinkModal(false)} className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-xl">Cancelar</button>
-                                    <button onClick={handleLinkChild} className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg">Vincular</button>
-                                </div>
+            document.getElementById('btn-logout').onclick = () => auth.signOut();
+            refreshParentView();
+        }
+
+        function refreshParentView() {
+            const nav = document.getElementById('parent-nav');
+            if(!nav) return;
+
+            nav.innerHTML = `
+                <button onclick="switchParentView('overview')" class="w-full flex items-center gap-3 p-3 rounded-xl transition-all ${!state.selectedKid && state.view === 'parent_overview' ? 'bg-brand-600 text-white' : 'hover:bg-slate-800'}">
+                    <div class="w-5 h-5">${icons.home}</div> <span class="hidden md:block font-medium">Panel General</span>
+                </button>
+                <div class="pt-4 pb-2 px-2 text-xs font-bold uppercase text-slate-500 hidden md:block">Dispositivos</div>
+                ${state.kids.map(kid => `
+                    <button onclick="selectKid('${kid.id}')" class="w-full flex items-center gap-3 p-3 rounded-xl transition-all ${state.selectedKid?.id === kid.id ? 'bg-slate-800 text-white border-l-4 border-brand-500' : 'hover:bg-slate-800'}">
+                        <span class="text-xl">${kid.avatar || '👤'}</span> 
+                        <div class="hidden md:block text-left overflow-hidden w-full">
+                            <div class="truncate font-medium">${kid.name}</div>
+                            <div class="text-[10px] flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full ${kid.isLocked ? 'bg-red-500' : 'bg-green-500'}"></span>
+                                ${kid.isLocked ? 'Bloqueado' : 'Activo'}
                             </div>
                         </div>
-                    )}
-                </div>
-            );
-        };
+                    </button>
+                `).join('')}
+                <button onclick="addKidPrompt()" class="w-full mt-2 border border-slate-700 border-dashed p-3 rounded-xl hover:border-brand-500 hover:text-brand-500 transition flex justify-center md:justify-start gap-3 text-slate-400">
+                    <div class="w-5 h-5">${icons.users}</div> <span class="hidden md:block">Vincular</span>
+                </button>
+            `;
 
-        // --- KID APP ---
-        const KidApp = ({ user, userData }) => {
-            const [chats, setChats] = useState([]);
-            const [view, setView] = useState('list'); // 'list', 'chat', 'camera'
-            const [activeChat, setActiveChat] = useState(null);
+            const content = document.getElementById('parent-content');
+            const title = document.getElementById('header-title');
 
-            // Fetch Chats
-            useEffect(() => {
-                const unsub = db.collection(CHATS_COLLECTION)
-                    .where('participants', 'array-contains', user.uid)
-                    .orderBy('lastUpdated', 'desc')
-                    .onSnapshot(snap => {
-                        setChats(snap.docs.map(d => ({id: d.id, ...d.data()})));
-                    });
-                return () => unsub();
-            }, [user.uid]);
+            if (state.selectedKid) {
+                title.textContent = `Gestionando a ${state.selectedKid.name}`;
+                content.innerHTML = `
+                    <div class="max-w-4xl mx-auto space-y-6 fade-in">
+                        <div class="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+                            <div class="p-8 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex flex-col md:flex-row justify-between items-center gap-4">
+                                <div class="flex items-center gap-4">
+                                    <div class="text-6xl">${state.selectedKid.avatar}</div>
+                                    <div>
+                                        <h1 class="text-3xl font-bold">${state.selectedKid.name}</h1>
+                                        <div class="text-sm opacity-80 mt-1 font-mono">CODE: ${state.selectedKid.familyCode}</div>
+                                    </div>
+                                </div>
+                                <button onclick="toggleLock('${state.selectedKid.id}', ${state.selectedKid.isLocked})" 
+                                    class="px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition shadow-xl ${state.selectedKid.isLocked ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}">
+                                    <div class="w-5 h-5">${state.selectedKid.isLocked ? icons.unlock : icons.lock}</div>
+                                    ${state.selectedKid.isLocked ? "DESBLOQUEAR" : "BLOQUEAR"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                title.textContent = "Resumen de Seguridad";
+                content.innerHTML = `
+                    <div class="max-w-5xl mx-auto space-y-8 fade-in">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                                <div class="text-slate-500 text-sm font-medium mb-1">Activos</div>
+                                <div class="text-4xl font-bold text-slate-800">${state.kids.filter(k => !k.isLocked).length}/${state.kids.length}</div>
+                            </div>
+                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                                <div class="text-slate-500 text-sm font-medium mb-1">Alertas Hoy</div>
+                                <div class="text-4xl font-bold text-red-500">${state.alerts.length}</div>
+                            </div>
+                        </div>
 
-            // Simulate QR Scan
-            const handleScanQR = async () => {
-                // In a real app, this opens camera. Here we prompt for "what the camera sees"
-                const codeScanned = prompt("📷 [SIMULACIÓN DE CÁMARA]\nApunte al código del amigo.\n\n(Para probar, escribe el código de otro usuario 'kid'):");
-                if(!codeScanned) return;
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                                <h3 class="font-bold text-slate-800">Alertas Recientes</h3>
+                            </div>
+                            <div class="divide-y divide-slate-50">
+                                ${state.alerts.length === 0 ? '<div class="p-8 text-center text-slate-400">Sin incidentes.</div>' : 
+                                  state.alerts.map(alert => `
+                                    <div class="p-4 flex items-center gap-4 hover:bg-slate-50 transition">
+                                        <div class="p-2 rounded-lg ${alert.type === 'SOS' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}">
+                                            <div class="w-6 h-6">${icons.shield}</div>
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="font-bold text-sm text-slate-800">${alert.type === 'SOS' ? 'SOS RECIBIDO' : 'LENGUAJE BLOQUEADO'}</div>
+                                            <div class="text-xs text-slate-500">Usuario: ${alert.kidName} • "${alert.detail}"</div>
+                                        </div>
+                                        <div class="text-xs text-slate-400 font-mono">
+                                            ${alert.timestamp ? new Date(alert.timestamp.toDate()).toLocaleTimeString() : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
 
-                try {
-                    const snap = await db.collection(USERS_COLLECTION).where('familyCode', '==', codeScanned.toUpperCase().trim()).get();
-                    if(snap.empty) { alert("❌ Código QR no válido o expirado."); return; }
-                    
-                    const friend = snap.docs[0].data();
-                    if(friend.role !== 'kid') { alert("❌ Solo puedes hacer amigos con otros niños."); return; }
-                    if(snap.docs[0].id === user.uid) { alert("😅 ¡No puedes añadirte a ti mismo!"); return; }
-
-                    // Create Chat
-                    await db.collection(CHATS_COLLECTION).add({
-                        participants: [user.uid, snap.docs[0].id],
-                        participantNames: { [user.uid]: userData.name, [snap.docs[0].id]: friend.name },
-                        messages: [],
-                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    
-                    alert(`✅ ¡Conectado con ${friend.name}!`);
-                    setView('list');
-
-                } catch(e) {
-                    alert("Error: " + e.message);
+        // Global functions for Parent UI
+        window.switchParentView = (v) => { state.selectedKid = null; state.view = 'parent_overview'; refreshParentView(); }
+        window.selectKid = (id) => { state.selectedKid = state.kids.find(k => k.id === id); refreshParentView(); }
+        window.addKidPrompt = () => {
+            showModal({
+                title: 'Vincular Dispositivo',
+                text: 'Introduce el código de 6 caracteres que aparece en la pantalla del niño.',
+                inputPlaceholder: 'CÓDIGO (Ej: A1B2C3)',
+                confirmText: 'Vincular',
+                onConfirm: async (code) => {
+                    if(!code) return;
+                    try {
+                        const snap = await db.collection(COLLECTIONS.USERS).where('familyCode', '==', code.toUpperCase()).get();
+                        if(snap.empty) return showToast("Código no válido", 'error');
+                        const kid = snap.docs[0];
+                        if(kid.data().role !== 'kid') return showToast("Código incorrecto (no es niño)", 'error');
+                        await db.collection(COLLECTIONS.USERS).doc(kid.id).update({ parentId: state.user.uid });
+                        showToast("Dispositivo vinculado correctamente");
+                    } catch(e) { console.error(e); showToast(e.message, 'error'); }
                 }
-            };
+            });
+        }
+        window.toggleLock = async (id, currentStatus) => {
+            await db.collection(COLLECTIONS.USERS).doc(id).update({ isLocked: !currentStatus });
+        }
 
-            const sendMessage = async (text) => {
-                if(!text.trim()) return;
-                await db.collection(CHATS_COLLECTION).doc(activeChat.id).update({
+        // --- VISTA: NIÑO ---
+        function renderKidApp() {
+            if (state.userData.isLocked) {
+                appDiv.innerHTML = `
+                    <div class="h-full bg-slate-900 text-white flex flex-col items-center justify-center p-8 text-center fade-in">
+                        <div class="mb-6 p-6 bg-slate-800 rounded-full shadow-2xl text-red-500 w-24 h-24 flex items-center justify-center">${icons.lock}</div>
+                        <h1 class="text-3xl font-bold mb-2">Pausa</h1>
+                        <p class="text-slate-400 mb-8">Dispositivo bloqueado por tus padres.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            if (!state.userData.parentId) {
+                appDiv.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center p-6 bg-gradient-to-b from-kid-400 to-kid-500 text-white text-center fade-in">
+                        <div class="bg-white/20 p-4 rounded-full mb-6 w-20 h-20 flex items-center justify-center">${icons.shield}</div>
+                        <h1 class="text-3xl font-kid font-bold mb-2">¡Casi listo!</h1>
+                        <p class="mb-8 opacity-90">Pide a tus padres que usen este código:</p>
+                        <div class="bg-white text-slate-900 text-4xl font-mono font-bold p-6 rounded-2xl shadow-xl border-4 border-white/50 tracking-widest">
+                            ${state.userData.familyCode}
+                        </div>
+                        <button id="btn-logout-kid" class="mt-12 text-white/70 font-bold">Salir</button>
+                    </div>
+                `;
+                document.getElementById('btn-logout-kid').onclick = () => auth.signOut();
+                return;
+            }
+
+            cleanListeners();
+            state.unsubscribes.push(
+                db.collection(COLLECTIONS.CHATS).where('participants', 'array-contains', state.user.uid)
+                .onSnapshot(snap => {
+                    state.chats = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    refreshKidView();
+                })
+            );
+            
+            appDiv.innerHTML = `
+                <div class="h-full flex flex-col bg-white max-w-md mx-auto shadow-2xl relative font-kid">
+                    <div class="bg-kid-400 p-4 pb-6 rounded-b-[30px] shadow-lg z-10 relative overflow-hidden flex-shrink-0">
+                        <div class="flex justify-between items-center relative z-10">
+                            <div class="flex items-center gap-3">
+                                <div class="text-4xl bg-white rounded-full p-1 shadow-sm border-2 border-kid-200">${state.userData.avatar}</div>
+                                <div>
+                                    <h1 class="font-bold text-xl text-white drop-shadow-sm">${state.userData.name}</h1>
+                                </div>
+                            </div>
+                            <button onclick="sendSOS()" class="bg-red-500 text-white w-12 h-12 flex items-center justify-center rounded-full shadow-lg border-4 border-white/30 sos-pulse active:scale-95 transition">
+                                <div class="w-6 h-6">${icons.sos}</div>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="kid-content" class="flex-1 overflow-y-auto bg-slate-50 relative pb-20"></div>
+                    <div id="kid-nav" class="absolute bottom-6 left-0 right-0 flex justify-center gap-4 pointer-events-none z-20"></div>
+                </div>
+            `;
+            refreshKidView();
+        }
+
+        function refreshKidView() {
+            const content = document.getElementById('kid-content');
+            const nav = document.getElementById('kid-nav');
+            if (!content) return;
+
+            if (state.activeChat) {
+                nav.innerHTML = '';
+                const msgs = state.activeChat.messages || [];
+                content.innerHTML = `
+                    <div class="flex flex-col h-full bg-white font-sans">
+                        <div class="p-3 border-b flex items-center gap-3 bg-white sticky top-0 z-20 shadow-sm">
+                            <button onclick="closeChat()" class="p-2 bg-slate-100 rounded-full w-10 h-10 flex items-center justify-center text-slate-600 hover:bg-slate-200">${icons.back}</button>
+                            <span class="font-bold text-lg flex-1">Chat</span>
+                        </div>
+                        <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50" id="msg-container">
+                            ${msgs.map(m => `
+                                <div class="flex ${m.senderId === state.user.uid ? 'justify-end' : 'justify-start'}">
+                                    <div class="max-w-[80%] p-3 rounded-2xl text-sm ${m.senderId === state.user.uid ? 'bg-kid-500 text-white message-bubble-me shadow-md' : 'bg-white border border-slate-200 message-bubble-other'}">
+                                        ${m.text}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="p-3 border-t bg-white flex gap-2">
+                            <input id="msg-input" class="flex-1 bg-slate-100 rounded-full px-4 outline-none border-2 border-transparent focus:border-kid-300 transition" placeholder="Escribe..." autocomplete="off">
+                            <button onclick="sendMessage()" class="bg-kid-500 text-white w-12 h-12 flex items-center justify-center rounded-full shadow-lg hover:bg-kid-600 transition">${icons.send}</button>
+                        </div>
+                    </div>
+                `;
+                const container = document.getElementById('msg-container');
+                container.scrollTop = container.scrollHeight;
+                document.getElementById('msg-input').onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
+            } else {
+                content.innerHTML = `
+                    <div class="p-4 space-y-4">
+                        ${state.chats.length === 0 ? `
+                            <div class="text-center py-20 opacity-50">
+                                <div class="text-6xl mb-4 grayscale">🦕</div>
+                                <p class="font-kid text-xl text-slate-400">¡Añade amigos!</p>
+                            </div>
+                        ` : state.chats.map(chat => {
+                            const otherId = chat.participants.find(p => p !== state.user.uid);
+                            const name = chat.names?.[otherId] || 'Amigo';
+                            const avatar = chat.avatars?.[otherId] || '🙂';
+                            const lastMsg = chat.messages[chat.messages.length-1]?.text || "¡Saluda!";
+                            return `
+                                <div onclick="openChat('${chat.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 active:scale-95 transition cursor-pointer">
+                                    <div class="text-3xl bg-slate-100 w-12 h-12 flex items-center justify-center rounded-full">${avatar}</div>
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="font-bold text-slate-800 font-kid text-lg">${name}</h3>
+                                        <p class="text-slate-400 text-sm truncate font-sans">${lastMsg}</p>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                nav.innerHTML = `
+                    <button onclick="scanFriend()" class="pointer-events-auto bg-brand-600 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-2 font-bold transform hover:scale-105 transition border-4 border-white font-sans">
+                        <div class="w-5 h-5">${icons.camera}</div> Añadir Amigo
+                    </button>
+                `;
+            }
+        }
+
+        // Global functions for Kid UI
+        window.sendSOS = () => {
+            showModal({
+                title: '¿EMERGENCIA?',
+                text: 'Esto enviará una alerta inmediata a tus padres.',
+                confirmText: 'SÍ, ENVIAR AYUDA',
+                confirmColor: 'bg-red-600',
+                onConfirm: async () => {
+                    try {
+                        await db.collection(COLLECTIONS.ALERTS).add({
+                            type: 'SOS',
+                            kidId: state.user.uid,
+                            kidName: state.userData.name,
+                            parentId: state.userData.parentId,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                            detail: "BOTÓN DE PÁNICO PRESIONADO"
+                        });
+                        showToast("🚨 ALERTA ENVIADA");
+                    } catch(e) { console.error(e); }
+                }
+            });
+        }
+
+        window.scanFriend = () => {
+            showModal({
+                title: 'Añadir Amigo',
+                text: 'Pide a tu amigo que te diga su código personal.',
+                inputPlaceholder: 'CÓDIGO DE AMIGO',
+                confirmText: 'Buscar',
+                onConfirm: async (code) => {
+                    if(!code) return;
+                    try {
+                        const snap = await db.collection(COLLECTIONS.USERS).where('familyCode', '==', code.toUpperCase()).get();
+                        if(snap.empty) return showToast("Código no encontrado", 'error');
+                        const friend = snap.docs[0].data();
+                        if(friend.role !== 'kid') return showToast("Solo puedes añadir a otros niños", 'error');
+                        
+                        await db.collection(COLLECTIONS.CHATS).add({
+                            participants: [state.user.uid, snap.docs[0].id],
+                            names: { [state.user.uid]: state.userData.name, [snap.docs[0].id]: friend.name },
+                            avatars: { [state.user.uid]: state.userData.avatar, [snap.docs[0].id]: friend.avatar },
+                            messages: [],
+                            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        showToast("¡Amigo añadido!");
+                    } catch(e) { console.error(e); showToast(e.message, 'error'); }
+                }
+            });
+        }
+
+        window.openChat = (id) => { state.activeChat = state.chats.find(c => c.id === id); refreshKidView(); }
+        window.closeChat = () => { state.activeChat = null; refreshKidView(); }
+
+        window.sendMessage = async () => {
+            const input = document.getElementById('msg-input');
+            const text = input.value.trim();
+            if(!text) return;
+
+            const hasBadWord = BAD_WORDS.some(word => text.toLowerCase().includes(word));
+            if(hasBadWord) {
+                input.value = "";
+                await db.collection(COLLECTIONS.ALERTS).add({
+                    type: 'BAD_WORD',
+                    kidId: state.user.uid,
+                    kidName: state.userData.name,
+                    parentId: state.userData.parentId,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    detail: text
+                });
+                return showToast("⚠️ Mensaje bloqueado. Sé amable.", 'error');
+            }
+
+            try {
+                await db.collection(COLLECTIONS.CHATS).doc(state.activeChat.id).update({
                     messages: firebase.firestore.FieldValue.arrayUnion({
-                        text,
-                        senderId: user.uid,
-                        createdAt: new Date().toISOString()
+                        text, 
+                        senderId: state.user.uid, 
+                        timestamp: new Date().toISOString()
                     }),
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
                 });
-            };
-
-            // Not linked yet state
-            if (!userData.parentId) {
-                return (
-                    <div className="h-full flex flex-col items-center justify-center bg-blue-500 text-white p-6 text-center">
-                        <div className="bg-white p-4 rounded-3xl mb-6 shadow-xl">
-                            <DynamicQR value={userData.familyCode} />
-                        </div>
-                        <h1 className="text-4xl font-bold kid-font mb-2">¡Hola, {userData.name}!</h1>
-                        <p className="text-xl opacity-90 mb-8 max-w-xs mx-auto">Muestra este código a tus padres para activar tu cuenta.</p>
-                        <div className="bg-white/20 px-6 py-3 rounded-full animate-pulse font-bold text-sm">
-                            Esperando vinculación...
-                        </div>
-                        <button onClick={() => auth.signOut()} className="mt-12 text-white/60 text-sm hover:text-white">Salir</button>
-                    </div>
-                );
-            }
-
-            // Normal Kid UI
-            return (
-                <div className="h-full bg-white flex flex-col max-w-md mx-auto shadow-2xl overflow-hidden relative">
-                    {/* Top Bar */}
-                    <div className="bg-blue-500 p-4 rounded-b-3xl shadow-lg z-10 text-white flex justify-between items-center">
-                        {view === 'list' ? (
-                            <>
-                                <div>
-                                    <h1 className="text-2xl font-bold kid-font">Hola, {userData.name}</h1>
-                                    <p className="text-xs opacity-80">Tiempo restante: {userData.dailyLimit || 120} min</p>
-                                </div>
-                                <button onClick={() => auth.signOut()} className="bg-white/20 p-2 rounded-full"><Icon name="logOut" /></button>
-                            </>
-                        ) : (
-                            <div className="flex items-center w-full">
-                                <button onClick={() => setView('list')} className="p-2 mr-2 bg-white/20 rounded-full"><Icon name="back" /></button>
-                                <span className="font-bold text-lg kid-font">Chat</span>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 overflow-y-auto bg-slate-50 relative">
-                        {view === 'list' && (
-                            <div className="p-4 space-y-3 pb-24">
-                                {chats.length === 0 ? (
-                                    <div className="text-center mt-20 opacity-50">
-                                        <div className="text-6xl mb-4">🦕</div>
-                                        <p className="kid-font text-xl">¡Sin amigos aún!</p>
-                                        <p className="text-sm mt-2">Usa el botón de cámara para escanear.</p>
-                                    </div>
-                                ) : (
-                                    chats.map(chat => {
-                                        const friendName = Object.values(chat.participantNames).find(n => n !== userData.name);
-                                        const lastMsg = chat.messages[chat.messages.length - 1]?.text || "¡Nuevo amigo!";
-                                        return (
-                                            <div key={chat.id} onClick={() => { setActiveChat(chat); setView('chat'); }} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 active:scale-95 transition">
-                                                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-xl">🦄</div>
-                                                <div className="flex-1">
-                                                    <h3 className="font-bold text-slate-800">{friendName}</h3>
-                                                    <p className="text-slate-400 text-sm truncate">{lastMsg}</p>
-                                                </div>
-                                            </div>
-                                        )
-                                    })
-                                )}
-                            </div>
-                        )}
-
-                        {view === 'chat' && activeChat && (
-                            <ChatWindow 
-                                chat={chats.find(c => c.id === activeChat.id) || activeChat} 
-                                currentUser={user.uid} 
-                                onSend={sendMessage} 
-                            />
-                        )}
-
-                        {view === 'camera' && (
-                            <div className="absolute inset-0 bg-black text-white flex flex-col items-center justify-center p-6 text-center">
-                                <div className="w-64 h-64 border-4 border-blue-500 rounded-3xl mb-8 relative overflow-hidden">
-                                    <div className="absolute top-0 left-0 w-full h-1 bg-blue-400 shadow-[0_0_20px_rgba(59,130,246,1)] animate-[scan_2s_infinite]"></div>
-                                    <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                                        <span className="text-6xl opacity-20">📷</span>
-                                    </div>
-                                </div>
-                                <h2 className="text-2xl font-bold kid-font mb-2">Escanea el QR de tu amigo</h2>
-                                <p className="text-sm opacity-70 mb-8">Debes estar físicamente con él.</p>
-                                <button onClick={handleScanQR} className="bg-blue-600 w-full py-4 rounded-xl font-bold text-lg shadow-lg mb-4">Simular Captura</button>
-                                <button onClick={() => setView('list')} className="text-white/50">Cancelar</button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* FAB (Floating Action Button) for Scan */}
-                    {view === 'list' && (
-                        <div className="absolute bottom-6 w-full flex justify-center pointer-events-none">
-                            <button 
-                                onClick={() => setView('camera')}
-                                className="pointer-events-auto bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-full shadow-2xl flex items-center gap-3 font-bold text-lg transform transition hover:scale-105 active:scale-95 border-4 border-white"
-                            >
-                                <Icon name="camera" /> Añadir Amigo
-                            </button>
-                        </div>
-                    )}
-                    
-                    {/* Mostrar mi propio código (mini) */}
-                    {view === 'list' && (
-                        <div className="absolute bottom-6 right-6 pointer-events-auto">
-                             <div className="w-12 h-12 bg-white rounded-xl shadow-md flex items-center justify-center border-2 border-slate-100" onClick={() => alert(`Tu código personal: ${userData.familyCode}`)}>
-                                <Icon name="qr" size={20} className="text-slate-800"/>
-                             </div>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        const ChatWindow = ({ chat, currentUser, onSend }) => {
-            const [txt, setTxt] = useState("");
-            const endRef = useRef(null);
-            
-            useEffect(() => endRef.current?.scrollIntoView({behavior: "smooth"}), [chat.messages]);
-
-            return (
-                <div className="flex flex-col h-full">
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                        {chat.messages.map((m, i) => {
-                            const isMe = m.senderId === currentUser;
-                            return (
-                                <div key={i} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[75%] p-3 rounded-2xl text-sm ${isMe ? 'bg-blue-500 text-white rounded-br-none' : 'bg-white border border-gray-200 rounded-bl-none'}`}>
-                                        {m.text}
-                                    </div>
-                                </div>
-                            )
-                        })}
-                        <div ref={endRef} />
-                    </div>
-                    <div className="p-3 bg-white border-t border-gray-100 flex gap-2">
-                        <input 
-                            className="flex-1 bg-gray-100 rounded-full px-4 py-3 outline-none focus:ring-2 focus:ring-blue-200 transition"
-                            placeholder="Mensaje..."
-                            value={txt}
-                            onChange={e => setTxt(e.target.value)}
-                            onKeyPress={e => e.key === 'Enter' && (onSend(txt), setTxt(''))}
-                        />
-                        <button onClick={() => {onSend(txt); setTxt('')}} className="bg-blue-500 text-white p-3 rounded-full shadow-lg hover:bg-blue-600 transition">
-                            <Icon name="plus" className="rotate-90" /> {/* Simulate Send icon */}
-                        </button>
-                    </div>
-                </div>
-            )
-        };
-
-        const Login = ({ onLogin }) => {
-            const [isRegister, setIsRegister] = useState(false);
-            const [role, setRole] = useState('parent');
-            const [form, setForm] = useState({email:'', pass:'', name:''});
-            const [loading, setLoading] = useState(false);
-
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                setLoading(true);
-                try {
-                    let user;
-                    if (isRegister) {
-                        const res = await auth.createUserWithEmailAndPassword(form.email, form.pass);
-                        user = res.user;
-                        await db.collection(USERS_COLLECTION).doc(user.uid).set({
-                            name: form.name,
-                            email: form.email,
-                            role: role,
-                            familyCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
-                            parentId: null, // For kids
-                            dailyLimit: 120, // For kids
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                    } else {
-                        const res = await auth.signInWithEmailAndPassword(form.email, form.pass);
-                        user = res.user;
-                    }
-                } catch(err) {
-                    alert(err.message);
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            return (
-                <div className="h-full flex items-center justify-center bg-slate-900 text-white p-6">
-                    <div className="w-full max-w-md">
-                        <div className="text-center mb-10">
-                            <div className="inline-block p-4 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-500/30"><Icon name="shield" size={40} /></div>
-                            <h1 className="text-4xl font-bold mb-2">SafeChat</h1>
-                            <p className="text-slate-400">Plataforma segura para familias</p>
-                        </div>
-
-                        <div className="bg-white/10 backdrop-blur-md p-8 rounded-3xl border border-white/10">
-                            <div className="flex mb-6 bg-black/20 p-1 rounded-xl">
-                                <button onClick={() => setIsRegister(false)} className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${!isRegister ? 'bg-white text-slate-900 shadow' : 'text-slate-400'}`}>Entrar</button>
-                                <button onClick={() => setIsRegister(true)} className={`flex-1 py-2 rounded-lg font-bold text-sm transition ${isRegister ? 'bg-white text-slate-900 shadow' : 'text-slate-400'}`}>Registrar</button>
-                            </div>
-
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                {isRegister && (
-                                    <>
-                                        <div>
-                                            <label className="text-xs font-bold text-slate-400 uppercase ml-1">Nombre</label>
-                                            <input required className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 mt-1 focus:ring-2 focus:ring-blue-500 outline-none" onChange={e => setForm({...form, name: e.target.value})} />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-slate-400 uppercase ml-1">Soy...</label>
-                                            <div className="grid grid-cols-2 gap-3 mt-1">
-                                                <button type="button" onClick={() => setRole('parent')} className={`p-3 rounded-xl border-2 font-bold transition ${role === 'parent' ? 'border-blue-500 bg-blue-500/20 text-blue-400' : 'border-slate-700 text-slate-500 hover:border-slate-500'}`}>Padre</button>
-                                                <button type="button" onClick={() => setRole('kid')} className={`p-3 rounded-xl border-2 font-bold transition ${role === 'kid' ? 'border-green-500 bg-green-500/20 text-green-400' : 'border-slate-700 text-slate-500 hover:border-slate-500'}`}>Hijo</button>
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-                                <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">Email</label>
-                                    <input type="email" required className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 mt-1 focus:ring-2 focus:ring-blue-500 outline-none" onChange={e => setForm({...form, email: e.target.value})} />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">Contraseña</label>
-                                    <input type="password" required className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 mt-1 focus:ring-2 focus:ring-blue-500 outline-none" onChange={e => setForm({...form, pass: e.target.value})} />
-                                </div>
-                                <button disabled={loading} className="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold text-lg shadow-lg shadow-blue-600/20 mt-4 transition">
-                                    {loading ? 'Procesando...' : (isRegister ? 'Crear Cuenta' : 'Iniciar Sesión')}
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            )
+                input.value = "";
+            } catch(e) { console.error(e); }
         }
 
-        const App = () => {
-            const [user, setUser] = useState(null);
-            const [userData, setUserData] = useState(null);
-            const [loading, setLoading] = useState(true);
-
-            useEffect(() => {
-                const unsub = auth.onAuthStateChanged(async u => {
-                    if(u) {
-                        try {
-                            const doc = await db.collection(USERS_COLLECTION).doc(u.uid).get();
-                            if(doc.exists) {
-                                setUserData(doc.data());
-                                setUser(u);
-                            }
-                        } catch(e) { console.error(e); }
+        // --- ORQUESTADOR PRINCIPAL ---
+        auth.onAuthStateChanged(async (u) => {
+            if (u) {
+                if(state.profileUnsub) state.profileUnsub();
+                state.profileUnsub = db.collection(COLLECTIONS.USERS).doc(u.uid).onSnapshot(doc => {
+                    if(doc.exists) {
+                        state.user = u;
+                        state.userData = doc.data();
+                        state.userData.role === 'parent' ? renderParentDashboard() : renderKidApp();
                     } else {
-                        setUser(null);
-                        setUserData(null);
+                         console.warn("Esperando perfil...");
                     }
-                    setLoading(false);
+                }, error => {
+                    console.error(error);
+                    showToast("Error de acceso a datos", 'error');
+                    auth.signOut();
                 });
-                return () => unsub();
-            }, []);
+            } else {
+                state.user = null;
+                state.userData = null;
+                if(state.profileUnsub) state.profileUnsub();
+                cleanListeners();
+                renderAuth();
+            }
+        });
 
-            if(loading) return <div className="h-full flex items-center justify-center bg-slate-900 text-white">Cargando SafeChat...</div>;
-
-            if(!user) return <Login />;
-
-            if(userData.role === 'parent') return <ParentDashboard user={user} userData={userData} />;
-            return <KidApp user={user} userData={userData} />;
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
     </script>
 </body>
 </html>
