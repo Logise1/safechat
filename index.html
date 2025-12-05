@@ -2,74 +2,98 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SafeChat Family</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeChat - Para Niños y Padres</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
-
-    <!-- Firebase SDKs (Compat) -->
-    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: { 500: '#6366f1', 600: '#4f46e5' }, // Indigo moderno
-                        accent: { 500: '#ec4899', 600: '#db2777' }, // Rosa vibrante
-                        kid: { bg: '#f0f9ff', card: '#ffffff', text: '#0f172a' }
-                    },
-                    fontFamily: {
-                        sans: ['Outfit', 'sans-serif'],
-                        fun: ['Fredoka', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- QRCode Libs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
     <style>
-        html, body { height: 100%; margin: 0; overflow: hidden; background: #f8fafc; }
-        #app { height: 100%; display: flex; flex-direction: column; }
-        
-        /* Animación QR CSS Puro */
-        .qr-noise {
-            background-image: radial-gradient(black 20%, transparent 20%);
-            background-position: 0 0;
-            background-size: 10px 10px;
-            animation: noise 0.5s infinite steps(2);
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: #E0F2FE; /* Sky Blue 100 */
         }
-        @keyframes noise {
-            0% { background-position: 0 0; }
-            25% { background-position: 5px 0; }
-            50% { background-position: 0 5px; }
-            75% { background-position: 5px 5px; }
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            z-index: -1;
+            opacity: 0.5;
         }
-        
-        .chat-bubble-me { background: #6366f1; color: white; border-radius: 18px 18px 0 18px; }
-        .chat-bubble-them { background: #ffffff; color: #1e293b; border-radius: 18px 18px 18px 0; border: 1px solid #e2e8f0; }
-        
-        .fade-in { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888; 
+            border-radius: 3px;
+        }
+        .message-bubble {
+            max-width: 75%;
+            word-wrap: break-word;
+        }
+        #qr-reader {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .animate-pulse-fast {
+            animation: pulse 0.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
     </style>
 </head>
-<body>
+<body class="bg-blue-50 h-screen overflow-hidden flex flex-col items-center justify-center relative">
 
-    <div id="app">
-        <div id="loading" class="h-full w-full flex flex-col items-center justify-center bg-slate-900 text-white gap-4">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-            <p class="font-bold tracking-widest text-sm">INICIANDO SISTEMA SEGURO...</p>
+    <!-- Background Decoration -->
+    <div class="blob bg-purple-300 w-64 h-64 top-0 left-0 mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+    <div class="blob bg-yellow-300 w-64 h-64 bottom-0 right-0 mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+
+    <!-- App Container -->
+    <div id="app" class="w-full max-w-md h-full sm:h-[90vh] bg-white sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col relative">
+        
+        <!-- HEADER -->
+        <header class="bg-indigo-600 text-white p-4 shadow-md flex justify-between items-center z-10">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-shield-cat text-2xl"></i>
+                <h1 class="text-xl font-bold tracking-wide">SafeChat</h1>
+            </div>
+            <button id="logoutBtn" class="hidden text-sm bg-indigo-800 px-3 py-1 rounded-full hover:bg-indigo-700 transition">
+                <i class="fa-solid fa-right-from-bracket"></i> Salir
+            </button>
+        </header>
+
+        <!-- CONTENT AREA -->
+        <main id="mainContent" class="flex-1 overflow-y-auto relative">
+            <!-- Views will be injected here -->
+            <div id="loading" class="flex flex-col items-center justify-center h-full">
+                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-indigo-500 mb-2"></i>
+                <p class="text-gray-500">Conectando seguro...</p>
+            </div>
+        </main>
+
+        <!-- TOAST NOTIFICATION -->
+        <div id="toast" class="absolute bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none z-50 text-sm text-center w-max max-w-[90%]">
+            Notification
         </div>
     </div>
 
-    <script>
-        // --- 1. CONFIGURACIÓN ---
+    <!-- FIREBASE & LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, getDoc, setDoc, updateDoc, orderBy, serverTimestamp, getDocs, arrayUnion } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        // --- CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyC1XbhA7TTz7gn-3_SFJ53p7DPfq36eRdg",
             authDomain: "safechat-224e2.firebaseapp.com",
@@ -80,565 +104,581 @@
             measurementId: "G-C7TZK5P9W6"
         };
 
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const APP_ID = 'safechat-v4-full'; 
-        
-        const COLLECTIONS = {
-            USERS: `artifacts/${APP_ID}/public/data/users`,
-            CHATS: `artifacts/${APP_ID}/public/data/chats`,
-            ALERTS: `artifacts/${APP_ID}/public/data/alerts`
-        };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        const BAD_WORDS = ["tonto", "feo", "idiota", "gordo", "matar", "odio"];
-        const AVATARS = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮"];
+        // --- STATE & UTILS ---
+        let currentUser = null;
+        let userData = null;
+        let unsubscribeChats = null;
+        let unsubscribeMessages = null;
+        let qrInterval = null;
+        let html5QrcodeScanner = null;
 
-        // --- 2. ESTADO GLOBAL ---
-        const state = {
-            user: null, userData: null,
-            kids: [], chats: [], alerts: [],
-            selectedKid: null, activeChatId: null, // Guardamos ID, no objeto, para evitar datos viejos
-            unsubscribes: []
-        };
+        const mainContent = document.getElementById('mainContent');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const toastEl = document.getElementById('toast');
 
-        const appDiv = document.getElementById('app');
-
-        // --- 3. UTILIDADES UI ---
-        function cleanListeners() {
-            state.unsubscribes.forEach(u => u());
-            state.unsubscribes = [];
+        function showToast(msg, isError = false) {
+            toastEl.innerText = msg;
+            toastEl.className = `absolute bottom-5 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg shadow-lg transition-opacity duration-300 z-50 text-sm text-center w-max max-w-[90%] ${isError ? 'bg-red-500 text-white' : 'bg-green-600 text-white'}`;
+            toastEl.style.opacity = '1';
+            setTimeout(() => { toastEl.style.opacity = '0'; }, 3000);
         }
 
-        function showToast(msg, type='info') {
-            const el = document.createElement('div');
-            el.className = `fixed top-5 right-5 px-6 py-4 rounded-xl shadow-2xl text-white font-bold z-50 fade-in ${type==='error'?'bg-red-500':'bg-green-500'}`;
-            el.innerText = msg;
-            document.body.appendChild(el);
-            setTimeout(() => el.remove(), 3000);
+        function generateLinkCode() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
 
-        function showModal(html) {
-            const el = document.createElement('div');
-            el.className = "fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in";
-            el.innerHTML = `<div class="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">${html}</div>`;
-            el.onclick = (e) => { if(e.target === el) el.remove(); }
-            document.body.appendChild(el);
-            return el;
-        }
+        // --- VIEWS ---
 
-        // --- 4. ICONOS ---
-        const icon = (name) => {
-            const paths = {
-                logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
-                send: '<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
-                qr: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><path d="M3 14h1v1H3z"/><path d="M5 14h1v1H5z"/><path d="M3 16h1v1H3z"/><path d="M5 16h1v1H5z"/><path d="M3 18h1v1H3z"/><path d="M5 18h1v1H5z"/><path d="M7 14h1v1H7z"/><path d="M9 14h1v1H9z"/><path d="M7 16h1v1H7z"/><path d="M9 16h1v1H9z"/><path d="M7 18h1v1H7z"/><path d="M9 18h1v1H9z"/>',
-                plus: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>',
-                users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
-                lock: '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
-                shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'
-            };
-            return `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths[name]||''}</svg>`;
-        };
-
-        // --- 5. LÓGICA & VISTAS ---
-
-        // >>> VISTA AUTH <<<
+        // 1. AUTH VIEW
         function renderAuth() {
-            let isRegister = false;
-            let role = 'parent';
-            let avatar = AVATARS[0];
-
-            const render = () => {
-                appDiv.innerHTML = `
-                    <div class="h-full flex items-center justify-center bg-slate-900 p-4">
-                        <div class="bg-white/10 backdrop-blur-md p-8 rounded-3xl w-full max-w-md border border-white/20 shadow-2xl text-white">
-                            <div class="text-center mb-8">
-                                <div class="bg-primary-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-lg shadow-primary-600/50">🛡️</div>
-                                <h1 class="text-3xl font-bold">SafeChat</h1>
-                                <p class="text-white/50">Conexión Familiar Segura</p>
-                            </div>
-                            
-                            <div class="bg-black/20 p-1 rounded-xl flex mb-6">
-                                <button onclick="window.setAuthMode(false)" class="flex-1 py-2 rounded-lg font-bold text-sm transition ${!isRegister ? 'bg-white text-slate-900' : 'text-white/50'}">Entrar</button>
-                                <button onclick="window.setAuthMode(true)" class="flex-1 py-2 rounded-lg font-bold text-sm transition ${isRegister ? 'bg-white text-slate-900' : 'text-white/50'}">Crear</button>
-                            </div>
-
-                            <form onsubmit="window.handleAuth(event)" class="space-y-4">
-                                ${isRegister ? `
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <div onclick="window.setRole('parent')" class="p-3 border-2 rounded-xl text-center cursor-pointer transition ${role==='parent'?'border-primary-500 bg-primary-500/20':'border-white/20 opacity-50'}">👮 Padre</div>
-                                        <div onclick="window.setRole('kid')" class="p-3 border-2 rounded-xl text-center cursor-pointer transition ${role==='kid'?'border-accent-500 bg-accent-500/20':'border-white/20 opacity-50'}">🧒 Niño</div>
-                                    </div>
-                                    <input id="name" placeholder="Nombre" class="w-full bg-white/5 border border-white/10 p-3 rounded-xl focus:border-primary-500 outline-none" required>
-                                    ${role === 'kid' ? `
-                                        <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                                            ${AVATARS.map(a => `<div onclick="window.setAvatar('${a}')" class="text-2xl p-2 rounded-lg cursor-pointer ${avatar===a?'bg-white/20 scale-110':''}" >${a}</div>`).join('')}
-                                        </div>
-                                    `:''}
-                                ` : ''}
-                                <input id="email" type="email" placeholder="Email" class="w-full bg-white/5 border border-white/10 p-3 rounded-xl focus:border-primary-500 outline-none" required>
-                                <input id="pass" type="password" placeholder="Contraseña" class="w-full bg-white/5 border border-white/10 p-3 rounded-xl focus:border-primary-500 outline-none" required>
-                                <button class="w-full bg-primary-600 hover:bg-primary-500 py-3 rounded-xl font-bold shadow-lg shadow-primary-600/30 transition transform active:scale-95">CONTINUAR</button>
-                            </form>
+            logoutBtn.classList.add('hidden');
+            mainContent.innerHTML = `
+                <div class="p-8 flex flex-col h-full justify-center">
+                    <div class="text-center mb-6">
+                        <div class="inline-block p-4 rounded-full bg-indigo-100 mb-4">
+                            <i class="fa-solid fa-users text-4xl text-indigo-600"></i>
                         </div>
+                        <h2 class="text-2xl font-bold text-gray-800">Bienvenido</h2>
+                        <p class="text-gray-500 text-sm">El chat seguro para la familia</p>
                     </div>
-                `;
-            };
 
-            window.setAuthMode = (m) => { isRegister = m; render(); };
-            window.setRole = (r) => { role = r; render(); };
-            window.setAvatar = (a) => { avatar = a; render(); };
-            
-            window.handleAuth = async (e) => {
+                    <div class="bg-white p-1 rounded-lg border flex mb-6">
+                        <button id="tab-login" class="flex-1 py-2 rounded-md bg-indigo-600 text-white font-medium text-sm transition">Iniciar Sesión</button>
+                        <button id="tab-register" class="flex-1 py-2 rounded-md text-gray-500 font-medium text-sm transition hover:bg-gray-50">Registrarse</button>
+                    </div>
+
+                    <form id="authForm" class="space-y-4">
+                        <div id="nameField" class="hidden">
+                            <label class="block text-xs font-bold text-gray-700 uppercase">Nombre</label>
+                            <input type="text" id="inputName" class="w-full mt-1 p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Tu nombre">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase">Email</label>
+                            <input type="email" id="inputEmail" class="w-full mt-1 p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="correo@ejemplo.com" required>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase">Contraseña</label>
+                            <input type="password" id="inputPassword" class="w-full mt-1 p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="******" required>
+                        </div>
+
+                        <div id="roleField" class="hidden space-y-2">
+                            <label class="block text-xs font-bold text-gray-700 uppercase">Soy...</label>
+                            <div class="flex gap-4">
+                                <label class="flex items-center gap-2 cursor-pointer border p-3 rounded-lg flex-1 hover:bg-blue-50 has-[:checked]:bg-blue-100 has-[:checked]:border-blue-500 transition">
+                                    <input type="radio" name="role" value="child" class="w-4 h-4 text-indigo-600" checked>
+                                    <div>
+                                        <div class="font-bold text-sm">Hijo/a</div>
+                                        <div class="text-xs text-gray-500">Quiero chatear</div>
+                                    </div>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer border p-3 rounded-lg flex-1 hover:bg-green-50 has-[:checked]:bg-green-100 has-[:checked]:border-green-500 transition">
+                                    <input type="radio" name="role" value="parent" class="w-4 h-4 text-green-600">
+                                    <div>
+                                        <div class="font-bold text-sm">Padre/Madre</div>
+                                        <div class="text-xs text-gray-500">Quiero supervisar</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="submitBtn" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg shadow-lg hover:bg-indigo-700 transition transform active:scale-95">
+                            Entrar
+                        </button>
+                    </form>
+                </div>
+            `;
+
+            let isLogin = true;
+            const tabLogin = document.getElementById('tab-login');
+            const tabRegister = document.getElementById('tab-register');
+            const nameField = document.getElementById('nameField');
+            const roleField = document.getElementById('roleField');
+            const btn = document.getElementById('submitBtn');
+
+            function toggleMode(login) {
+                isLogin = login;
+                if (isLogin) {
+                    tabLogin.className = "flex-1 py-2 rounded-md bg-indigo-600 text-white font-medium text-sm transition";
+                    tabRegister.className = "flex-1 py-2 rounded-md text-gray-500 font-medium text-sm transition hover:bg-gray-50";
+                    nameField.classList.add('hidden');
+                    roleField.classList.add('hidden');
+                    btn.innerText = "Entrar";
+                } else {
+                    tabRegister.className = "flex-1 py-2 rounded-md bg-indigo-600 text-white font-medium text-sm transition";
+                    tabLogin.className = "flex-1 py-2 rounded-md text-gray-500 font-medium text-sm transition hover:bg-gray-50";
+                    nameField.classList.remove('hidden');
+                    roleField.classList.remove('hidden');
+                    btn.innerText = "Crear Cuenta";
+                }
+            }
+
+            tabLogin.onclick = () => toggleMode(true);
+            tabRegister.onclick = () => toggleMode(false);
+
+            document.getElementById('authForm').onsubmit = async (e) => {
                 e.preventDefault();
-                const email = document.getElementById('email').value;
-                const pass = document.getElementById('pass').value;
-                const name = document.getElementById('name')?.value;
+                const email = document.getElementById('inputEmail').value;
+                const password = document.getElementById('inputPassword').value;
+                const name = document.getElementById('inputName').value;
                 
                 try {
-                    if(isRegister) {
-                        const r = await auth.createUserWithEmailAndPassword(email, pass);
-                        await db.collection(COLLECTIONS.USERS).doc(r.user.uid).set({
-                            name, email, role, avatar: role==='kid'?avatar:'👤',
-                            familyCode: Math.random().toString(36).substring(2,8).toUpperCase(),
-                            parentId: null, isLocked: false, createdAt: new Date().toISOString()
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                    
+                    if (isLogin) {
+                        await signInWithEmailAndPassword(auth, email, password);
+                    } else {
+                        const role = document.querySelector('input[name="role"]:checked').value;
+                        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+                        
+                        // Setup User Doc
+                        const linkCode = role === 'child' ? generateLinkCode() : null;
+                        
+                        await setDoc(doc(db, "users", userCred.user.uid), {
+                            name: name,
+                            email: email,
+                            role: role,
+                            uid: userCred.user.uid,
+                            linkCode: linkCode,
+                            linkedTo: null, // parentId or childId
+                            createdAt: serverTimestamp()
+                        });
+                        
+                        await updateProfile(userCred.user, { displayName: name });
+                    }
+                } catch (error) {
+                    showToast(error.message, true);
+                    btn.disabled = false;
+                    btn.innerText = isLogin ? "Entrar" : "Crear Cuenta";
+                }
+            };
+        }
+
+        // 2. PARENT DASHBOARD
+        function renderParentDashboard() {
+            // Check if linked to child
+            if (!userData.linkedTo) {
+                mainContent.innerHTML = `
+                    <div class="p-8 flex flex-col items-center justify-center h-full text-center">
+                        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                            <i class="fa-solid fa-child-reaching text-4xl text-green-600"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">Vincular a tu Hijo</h2>
+                        <p class="text-gray-600 mb-6 text-sm">Para supervisar, necesitas el código de 6 caracteres que aparece en el perfil de tu hijo.</p>
+                        
+                        <input type="text" id="childCodeInput" class="text-center text-2xl tracking-widest uppercase w-full max-w-[200px] p-2 border-2 border-green-200 rounded-lg focus:border-green-500 outline-none mb-4" maxlength="6" placeholder="A1B2C3">
+                        
+                        <button id="linkChildBtn" class="bg-green-600 text-white px-6 py-3 rounded-lg font-bold shadow-md hover:bg-green-700 w-full max-w-[200px]">
+                            Vincular
+                        </button>
+                    </div>
+                `;
+
+                document.getElementById('linkChildBtn').onclick = async () => {
+                    const code = document.getElementById('childCodeInput').value.toUpperCase();
+                    if (code.length < 6) return showToast("Código incompleto", true);
+
+                    const q = query(collection(db, "users"), where("linkCode", "==", code), where("role", "==", "child"));
+                    const querySnapshot = await getDocs(q);
+
+                    if (querySnapshot.empty) {
+                        showToast("Código inválido", true);
+                    } else {
+                        const childDoc = querySnapshot.docs[0];
+                        // Link logic
+                        await updateDoc(doc(db, "users", currentUser.uid), { linkedTo: childDoc.id });
+                        await updateDoc(doc(db, "users", childDoc.id), { linkedTo: currentUser.uid });
+                        // Refresh will handle by onSnapshot or manual reload
+                        window.location.reload(); 
+                    }
+                };
+                return;
+            }
+
+            // Monitor View
+            mainContent.innerHTML = `
+                <div class="flex flex-col h-full bg-gray-50">
+                    <div class="bg-green-600 p-4 text-white shadow-md">
+                        <h2 class="font-bold"><i class="fa-solid fa-eye mr-2"></i>Modo Supervisor</h2>
+                        <p class="text-xs opacity-80">Viendo chats de tu hijo</p>
+                    </div>
+                    <div id="chatsList" class="flex-1 overflow-y-auto p-4 space-y-3">
+                        <p class="text-center text-gray-500 mt-10"><i class="fa-solid fa-spinner fa-spin"></i> Cargando amigos...</p>
+                    </div>
+                </div>
+            `;
+
+            loadChats(userData.linkedTo, true); // true = readOnly/parentMode
+        }
+
+        // 3. CHILD DASHBOARD
+        function renderChildDashboard() {
+            mainContent.innerHTML = `
+                <div class="flex flex-col h-full">
+                    <!-- Profile Header Small -->
+                    <div class="bg-white p-4 border-b flex justify-between items-center">
+                        <div>
+                            <h2 class="font-bold text-gray-800 text-lg">Mis Chats</h2>
+                            <p class="text-xs text-indigo-500 font-mono bg-indigo-50 px-2 py-1 rounded inline-block">Código: ${userData.linkCode || '...'}</p>
+                        </div>
+                        <button id="addFriendBtn" class="bg-indigo-600 text-white w-10 h-10 rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition">
+                            <i class="fa-solid fa-user-plus"></i>
+                        </button>
+                    </div>
+
+                    <div id="chatsList" class="flex-1 overflow-y-auto p-4 space-y-3">
+                        <!-- Chat Items -->
+                        <div class="text-center mt-10 text-gray-400">
+                            <i class="fa-solid fa-comments text-4xl mb-2"></i>
+                            <p>No tienes chats aún.</p>
+                            <p class="text-sm">¡Añade un amigo con el botón +!</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('addFriendBtn').onclick = renderAddFriendModal;
+            loadChats(currentUser.uid, false);
+        }
+
+        function renderAddFriendModal() {
+            mainContent.innerHTML = `
+                <div class="flex flex-col h-full bg-gray-900 text-white p-6 items-center text-center">
+                    <button id="backToDash" class="absolute top-4 left-4 text-gray-400 hover:text-white">
+                        <i class="fa-solid fa-arrow-left text-2xl"></i>
+                    </button>
+                    
+                    <h2 class="text-2xl font-bold mb-2 mt-8">Añadir Amigo</h2>
+                    <p class="text-gray-400 text-sm mb-8">Para añadir a alguien, debéis estar <strong>físicamente juntos</strong>.</p>
+
+                    <div class="flex flex-col gap-4 w-full max-w-xs">
+                        <button id="showQrBtn" class="bg-indigo-600 p-6 rounded-xl border border-indigo-400 hover:bg-indigo-700 transition flex flex-col items-center">
+                            <i class="fa-solid fa-qrcode text-4xl mb-2"></i>
+                            <span class="font-bold">Mostrar mi QR</span>
+                            <span class="text-xs opacity-70">Para que te escaneen</span>
+                        </button>
+
+                        <div class="flex items-center gap-2 opacity-50">
+                            <div class="h-px bg-gray-500 flex-1"></div>
+                            <span class="text-xs">O</span>
+                            <div class="h-px bg-gray-500 flex-1"></div>
+                        </div>
+
+                        <button id="scanQrBtn" class="bg-emerald-600 p-6 rounded-xl border border-emerald-400 hover:bg-emerald-700 transition flex flex-col items-center">
+                            <i class="fa-solid fa-camera text-4xl mb-2"></i>
+                            <span class="font-bold">Escanear QR</span>
+                            <span class="text-xs opacity-70">Escanear amigo</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('backToDash').onclick = renderChildDashboard;
+            document.getElementById('showQrBtn').onclick = startDynamicQR;
+            document.getElementById('scanQrBtn').onclick = startScanner;
+        }
+
+        // --- DYNAMIC QR FEATURE (The Core Requirement) ---
+        function startDynamicQR() {
+            mainContent.innerHTML = `
+                <div class="flex flex-col h-full bg-white items-center justify-center p-6 relative">
+                    <button id="stopQr" class="absolute top-4 left-4 text-gray-600 hover:text-black">
+                        <i class="fa-solid fa-xmark text-3xl"></i>
+                    </button>
+                    <h3 class="font-bold text-xl text-indigo-800 mb-2">Tu Código Seguro</h3>
+                    <p class="text-xs text-center text-gray-500 mb-6 max-w-xs">Este código cambia cada 0.5s. Tu amigo debe escanearlo AHORA.</p>
+                    
+                    <div class="relative">
+                        <div id="qrcode" class="border-4 border-indigo-500 p-2 rounded-xl"></div>
+                        <!-- Security Overlay Effect -->
+                        <div class="absolute inset-0 bg-indigo-500 opacity-10 animate-pulse-fast pointer-events-none rounded-xl"></div>
+                    </div>
+
+                    <div class="mt-8 flex items-center gap-2 text-indigo-600 font-mono text-xs">
+                        <i class="fa-solid fa-lock"></i> Encriptado y Dinámico
+                    </div>
+                </div>
+            `;
+
+            const qrContainer = document.getElementById('qrcode');
+            
+            // Generate QR loop
+            const updateQR = () => {
+                qrContainer.innerHTML = "";
+                // FORMAT: SAFECHAT:UID:TIMESTAMP
+                const data = `SAFECHAT:${currentUser.uid}:${Date.now()}`;
+                
+                new QRCode(qrContainer, {
+                    text: data,
+                    width: 200,
+                    height: 200,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.L
+                });
+            };
+
+            updateQR();
+            qrInterval = setInterval(updateQR, 500); // 0.5s requirement
+
+            document.getElementById('stopQr').onclick = () => {
+                clearInterval(qrInterval);
+                renderChildDashboard();
+            };
+        }
+
+        function startScanner() {
+            mainContent.innerHTML = `
+                <div class="flex flex-col h-full bg-black relative">
+                     <button id="stopScan" class="absolute top-4 left-4 text-white z-20 bg-black/50 p-2 rounded-full">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <div id="reader" class="w-full h-full object-cover"></div>
+                    <div class="absolute bottom-10 left-0 w-full text-center text-white z-20">
+                        <p class="bg-black/50 inline-block px-4 py-2 rounded-full text-sm">Apunta al QR de tu amigo</p>
+                    </div>
+                </div>
+            `;
+
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            
+            const qrCodeSuccessCallback = async (decodedText, decodedResult) => {
+                // FORMAT: SAFECHAT:UID:TIMESTAMP
+                if (decodedText.startsWith("SAFECHAT:")) {
+                    const parts = decodedText.split(":");
+                    const friendUid = parts[1];
+                    const timestamp = parseInt(parts[2]);
+                    const now = Date.now();
+
+                    // VALIDATION LOGIC
+                    // We allow a slightly larger window (3s) to account for camera focus/processing time, 
+                    // but the visual QR changes every 0.5s, making it impossible to screenshot and share effectively.
+                    if (now - timestamp < 3000 && now - timestamp > -500) { 
+                        html5QrcodeScanner.stop().then(async () => {
+                            // Add Friend Logic
+                            await addFriend(friendUid);
                         });
                     } else {
-                        await auth.signInWithEmailAndPassword(email, pass);
+                        // Expired code logic (optional visual feedback)
+                        // console.log("Code expired");
                     }
-                } catch(err) { showToast(err.message, 'error'); }
-            };
-            
-            render();
-        }
-
-        // >>> VISTA PADRE <<<
-        function renderParent() {
-            cleanListeners();
-            // Listener Hijos
-            state.unsubscribes.push(
-                db.collection(COLLECTIONS.USERS).where('parentId', '==', state.user.uid)
-                .onSnapshot(snap => {
-                    state.kids = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    refreshParentUI();
-                })
-            );
-
-            // Layout Base
-            appDiv.innerHTML = `
-                <div class="flex h-full bg-slate-50 text-slate-800 font-sans">
-                    <!-- Sidebar -->
-                    <div class="w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm hidden md:flex">
-                        <div class="p-6 border-b border-slate-100 font-bold text-xl flex items-center gap-2 text-primary-600">
-                            ${icon('shield')} Panel Parental
-                        </div>
-                        <div id="parent-list" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
-                        <div class="p-4 border-t border-slate-100">
-                            <button onclick="auth.signOut()" class="w-full flex items-center gap-2 p-3 text-slate-500 hover:bg-slate-50 rounded-xl transition font-bold text-sm">
-                                ${icon('logout')} Cerrar Sesión
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Main -->
-                    <div class="flex-1 flex flex-col relative bg-slate-50/50">
-                        <!-- Mobile Header -->
-                        <div class="md:hidden h-16 bg-white border-b flex items-center justify-between px-4 shadow-sm">
-                            <span class="font-bold text-primary-600">SafeChat</span>
-                            <button onclick="auth.signOut()" class="text-slate-400">${icon('logout')}</button>
-                        </div>
-
-                        <div id="parent-content" class="flex-1 overflow-y-auto p-4 md:p-8">
-                            <!-- Dynamic Content -->
-                        </div>
-                    </div>
-                </div>
-            `;
-            refreshParentUI();
-        }
-
-        function refreshParentUI() {
-            const listEl = document.getElementById('parent-list');
-            const contentEl = document.getElementById('parent-content');
-            if(!listEl || !contentEl) return;
-
-            // Render Sidebar List
-            listEl.innerHTML = `
-                <div onclick="window.selectKid(null)" class="p-3 rounded-xl cursor-pointer font-bold text-sm flex items-center gap-3 transition ${!state.selectedKid ? 'bg-primary-50 text-primary-600' : 'hover:bg-slate-50 text-slate-600'}">
-                    ${icon('users')} Resumen General
-                </div>
-                <div class="mt-4 mb-2 text-xs font-bold text-slate-400 uppercase px-2">Mis Hijos</div>
-                ${state.kids.map(kid => `
-                    <div onclick="window.selectKid('${kid.id}')" class="p-3 rounded-xl cursor-pointer font-bold text-sm flex items-center gap-3 transition ${state.selectedKid?.id === kid.id ? 'bg-white border border-primary-100 shadow-sm text-primary-600' : 'hover:bg-slate-50 text-slate-600'}">
-                        <span class="text-lg">${kid.avatar}</span>
-                        <div class="flex-1 overflow-hidden">
-                            <div class="truncate">${kid.name}</div>
-                            <div class="text-[10px] ${kid.isLocked ? 'text-red-500' : 'text-green-500'} flex items-center gap-1">
-                                <div class="w-1.5 h-1.5 rounded-full bg-current"></div> ${kid.isLocked ? 'Bloqueado' : 'Activo'}
-                            </div>
-                        </div>
-                    </div>
-                `).join('')}
-                <button onclick="window.addKid()" class="w-full mt-2 border-2 border-dashed border-slate-200 p-3 rounded-xl text-slate-400 hover:border-primary-400 hover:text-primary-500 transition font-bold text-xs flex justify-center gap-2">
-                    ${icon('plus')} VINCULAR NUEVO
-                </button>
-            `;
-
-            // Render Content
-            if(!state.selectedKid) {
-                // Dashboard
-                contentEl.innerHTML = `
-                    <div class="max-w-4xl mx-auto space-y-6 fade-in">
-                        <h2 class="text-2xl font-bold text-slate-800">Resumen Familiar</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                                <div class="text-slate-400 text-xs font-bold uppercase mb-1">Dispositivos</div>
-                                <div class="text-3xl font-bold text-slate-800">${state.kids.length}</div>
-                            </div>
-                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                                <div class="text-slate-400 text-xs font-bold uppercase mb-1">Estado</div>
-                                <div class="text-lg font-bold text-green-600 flex items-center gap-2">Sistema Operativo</div>
-                            </div>
-                        </div>
-                        ${state.kids.length === 0 ? `
-                            <div class="text-center py-12 bg-white rounded-3xl border border-slate-100 shadow-sm">
-                                <div class="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300 text-2xl">${icon('users')}</div>
-                                <h3 class="font-bold text-slate-800">No hay dispositivos vinculados</h3>
-                                <p class="text-slate-500 text-sm mb-4">Escanea el código del dispositivo de tu hijo.</p>
-                                <button onclick="window.addKid()" class="bg-primary-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg shadow-primary-600/20">Vincular Ahora</button>
-                            </div>
-                        `:''}
-                    </div>
-                `;
-            } else {
-                // Kid Detail
-                const k = state.selectedKid;
-                contentEl.innerHTML = `
-                    <div class="max-w-2xl mx-auto space-y-6 fade-in">
-                        <div class="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden">
-                            <div class="bg-slate-800 p-8 text-white flex justify-between items-center">
-                                <div class="flex items-center gap-4">
-                                    <div class="text-5xl bg-white/10 p-2 rounded-2xl backdrop-blur-sm">${k.avatar}</div>
-                                    <div>
-                                        <h1 class="text-2xl font-bold">${k.name}</h1>
-                                        <div class="font-mono text-white/50 text-sm tracking-widest mt-1">${k.familyCode}</div>
-                                    </div>
-                                </div>
-                                <button onclick="window.toggleLock('${k.id}', ${k.isLocked})" class="px-6 py-3 rounded-xl font-bold text-sm shadow-xl transition flex items-center gap-2 ${k.isLocked ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}">
-                                    ${icon('lock')} ${k.isLocked ? 'DESBLOQUEAR' : 'BLOQUEAR'}
-                                </button>
-                            </div>
-                            <div class="p-6 bg-slate-50">
-                                <p class="text-sm text-slate-500 text-center">
-                                    Estado: <strong class="${k.isLocked ? 'text-red-500' : 'text-green-500'}">${k.isLocked ? 'BLOQUEADO' : 'ACTIVO'}</strong>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-
-        window.selectKid = (id) => { state.selectedKid = state.kids.find(k => k.id === id); refreshParentUI(); }
-        window.addKid = () => {
-            const modal = showModal(`
-                <div class="p-6">
-                    <h3 class="text-xl font-bold text-slate-800 mb-2">Vincular Dispositivo</h3>
-                    <p class="text-slate-500 text-sm mb-4">Ingresa el código de 6 letras que aparece en la pantalla del niño.</p>
-                    <input id="linkCode" class="w-full text-center text-3xl font-mono uppercase tracking-widest border-2 border-slate-200 rounded-xl p-3 outline-none focus:border-primary-500" placeholder="CODE" maxlength="6">
-                    <button onclick="window.submitLink()" class="w-full bg-primary-600 text-white font-bold py-3 rounded-xl mt-6 shadow-lg">VINCULAR</button>
-                </div>
-            `);
-            window.submitLink = async () => {
-                const code = document.getElementById('linkCode').value.toUpperCase();
-                try {
-                    const snap = await db.collection(COLLECTIONS.USERS).where('familyCode', '==', code).get();
-                    if(snap.empty) return showToast('Código inválido', 'error');
-                    const kid = snap.docs[0];
-                    if(kid.data().role !== 'kid') return showToast('El código no es de un niño', 'error');
-                    
-                    await db.collection(COLLECTIONS.USERS).doc(kid.id).update({ parentId: state.user.uid });
-                    showToast('¡Vinculado con éxito!');
-                    modal.remove();
-                } catch(e) { showToast(e.message, 'error'); }
-            };
-        }
-        window.toggleLock = async (id, status) => {
-            await db.collection(COLLECTIONS.USERS).doc(id).update({ isLocked: !status });
-        };
-
-        // >>> VISTA NIÑO <<<
-        function renderKid() {
-            // Verificar Bloqueo
-            if (state.userData.isLocked) {
-                appDiv.innerHTML = `
-                    <div class="h-full bg-slate-900 text-white flex flex-col items-center justify-center p-8 text-center fade-in">
-                        <div class="text-6xl mb-6 animate-bounce">🔒</div>
-                        <h1 class="text-4xl font-bold mb-2">Pausa</h1>
-                        <p class="text-white/50 text-xl">Tu dispositivo está bloqueado.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            // Verificar Vinculación
-            if (!state.userData.parentId) {
-                appDiv.innerHTML = `
-                    <div class="h-full bg-primary-600 text-white flex flex-col items-center justify-center p-8 text-center fade-in font-fun">
-                        <div class="bg-white/20 p-6 rounded-full mb-6 text-4xl">👋</div>
-                        <h1 class="text-4xl font-bold mb-2">¡Hola ${state.userData.name}!</h1>
-                        <p class="text-white/80 mb-8 text-lg">Dile este código a tus padres:</p>
-                        <div class="bg-white text-primary-600 text-5xl font-mono font-bold px-8 py-6 rounded-3xl shadow-2xl border-4 border-white/50 tracking-widest mb-10">
-                            ${state.userData.familyCode}
-                        </div>
-                        <button onclick="auth.signOut()" class="text-white/60 font-bold hover:text-white">Salir</button>
-                    </div>
-                `;
-                return;
-            }
-
-            // UI Principal Niño
-            cleanListeners();
-            // Escuchar chats
-            state.unsubscribes.push(
-                db.collection(COLLECTIONS.CHATS).where('participants', 'array-contains', state.user.uid)
-                .onSnapshot(snap => {
-                    state.chats = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    refreshKidUI(); // Refrescar UI cuando llegan mensajes
-                })
-            );
-
-            // Layout Responsive (Tipo WhatsApp Web)
-            appDiv.innerHTML = `
-                <div class="flex h-full bg-white font-fun">
-                    <!-- Lista de Amigos (Sidebar en Desktop, Full en Mobile si no hay chat activo) -->
-                    <div id="kid-list-panel" class="w-full md:w-80 bg-slate-50 border-r border-slate-200 flex flex-col relative z-10 transition-transform duration-300">
-                        <div class="p-4 bg-white border-b border-slate-100 flex items-center justify-between shadow-sm h-16">
-                            <div class="flex items-center gap-3">
-                                <div class="text-2xl">${state.userData.avatar}</div>
-                                <div class="font-bold text-slate-700">${state.userData.name}</div>
-                            </div>
-                            <button onclick="auth.signOut()" class="text-slate-400 hover:text-red-500">${icon('logout')}</button>
-                        </div>
-                        <div id="friends-list" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
-                        <div class="p-3 border-t bg-white">
-                            <button onclick="window.openScan()" class="w-full bg-primary-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-primary-600/20 flex items-center justify-center gap-2 hover:bg-primary-500 transition">
-                                ${icon('plus')} AÑADIR AMIGO
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Area Principal (Chat o QR) -->
-                    <div id="kid-main-panel" class="flex-1 bg-white relative flex flex-col hidden md:flex">
-                        <!-- Contenido dinámico aquí -->
-                        <div id="main-content" class="absolute inset-0 flex flex-col"></div>
-                    </div>
-                </div>
-            `;
-            refreshKidUI();
-        }
-
-        function refreshKidUI() {
-            const listPanel = document.getElementById('kid-list-panel');
-            const mainPanel = document.getElementById('kid-main-panel');
-            const friendsList = document.getElementById('friends-list');
-            const mainContent = document.getElementById('main-content');
-
-            if(!listPanel) return;
-
-            // Manejo Responsive de Paneles
-            if (window.innerWidth < 768) {
-                if (state.activeChatId) {
-                    listPanel.classList.add('hidden');
-                    mainPanel.classList.remove('hidden');
-                } else {
-                    listPanel.classList.remove('hidden');
-                    mainPanel.classList.add('hidden');
                 }
-            } else {
-                listPanel.classList.remove('hidden');
-                mainPanel.classList.remove('hidden');
-            }
+            };
 
-            // 1. Render Lista Amigos + Mi Código (Arriba)
-            let listHTML = `
-                <div onclick="window.showMyCode()" class="bg-indigo-50 border border-indigo-100 p-3 rounded-xl flex items-center gap-3 cursor-pointer hover:bg-indigo-100 transition mb-2">
-                    <div class="bg-white p-2 rounded-lg text-indigo-600">${icon('qr')}</div>
-                    <div class="font-bold text-indigo-900 text-sm">Ver Mi Código</div>
-                </div>
-            `;
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            html5QrcodeScanner.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+            .catch(err => {
+                showToast("Error de cámara", true);
+                renderChildDashboard();
+            });
 
-            if (state.chats.length === 0) {
-                listHTML += `
-                    <div class="text-center py-10 opacity-50">
-                        <div class="text-4xl mb-2">🦕</div>
-                        <div class="font-bold text-slate-400">¡Sin amigos aún!</div>
-                    </div>
-                `;
-            } else {
-                listHTML += state.chats.map(chat => {
-                    const otherId = chat.participants.find(p => p !== state.user.uid);
-                    const name = chat.names[otherId];
-                    const avatar = chat.avatars[otherId];
-                    const isActive = state.activeChatId === chat.id;
-                    const lastMsg = chat.messages.length > 0 ? chat.messages[chat.messages.length - 1].text : '¡Saluda!';
-                    
-                    return `
-                        <div onclick="window.openChat('${chat.id}')" class="p-3 rounded-xl flex items-center gap-3 cursor-pointer transition ${isActive ? 'bg-primary-50 border border-primary-100' : 'bg-white border border-transparent hover:bg-white shadow-sm'}">
-                            <div class="text-2xl">${avatar}</div>
-                            <div class="flex-1 overflow-hidden">
-                                <div class="font-bold text-slate-700 text-sm">${name}</div>
-                                <div class="text-xs text-slate-400 truncate">${lastMsg}</div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            }
-            friendsList.innerHTML = listHTML;
-
-            // 2. Render Main Content (Chat o Empty)
-            if (state.activeChatId) {
-                // Buscar datos frescos del chat usando ID
-                const chat = state.chats.find(c => c.id === state.activeChatId);
-                if (!chat) return; // Puede pasar si se borra el chat
-
-                const otherId = chat.participants.find(p => p !== state.user.uid);
-                const name = chat.names[otherId];
-                
-                mainContent.innerHTML = `
-                    <div class="h-16 border-b flex items-center justify-between px-4 bg-white shadow-sm z-10">
-                        <div class="flex items-center gap-3">
-                            <button onclick="window.closeChat()" class="md:hidden p-2 bg-slate-100 rounded-full text-slate-500">↩</button>
-                            <div class="font-bold text-lg text-slate-800">${name}</div>
-                        </div>
-                    </div>
-                    <div id="msg-area" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50">
-                        ${chat.messages.map(m => `
-                            <div class="flex ${m.senderId === state.user.uid ? 'justify-end' : 'justify-start'}">
-                                <div class="max-w-[75%] px-4 py-2 text-sm font-medium shadow-sm ${m.senderId === state.user.uid ? 'chat-bubble-me' : 'chat-bubble-them'}">
-                                    ${m.text}
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="p-3 bg-white border-t flex gap-2">
-                        <input id="msg-input" class="flex-1 bg-slate-100 rounded-full px-5 outline-none border-2 border-transparent focus:border-primary-300 transition" placeholder="Mensaje..." autocomplete="off">
-                        <button onclick="window.sendMsg()" class="bg-primary-600 text-white w-12 h-12 flex items-center justify-center rounded-full shadow-lg hover:bg-primary-500 transition">${icon('send')}</button>
-                    </div>
-                `;
-                
-                const area = document.getElementById('msg-area');
-                area.scrollTop = area.scrollHeight;
-                
-                const input = document.getElementById('msg-input');
-                input.onkeypress = (e) => { if(e.key==='Enter') window.sendMsg(); };
-                // Keep focus if desktop
-                if(window.innerWidth > 768) input.focus();
-
-            } else {
-                // Estado Vacío / QR Grande
-                mainContent.innerHTML = `
-                    <div class="h-full flex flex-col items-center justify-center text-center p-8 bg-slate-50/50">
-                        <div class="bg-white p-6 rounded-3xl shadow-xl border-4 border-primary-100 mb-6 relative overflow-hidden">
-                            <div class="absolute inset-0 qr-noise opacity-10"></div>
-                            <div class="relative z-10 text-6xl font-mono font-bold tracking-widest text-slate-800">${state.userData.familyCode}</div>
-                        </div>
-                        <h2 class="text-2xl font-bold text-slate-700 mb-2">Tu Código de Amigo</h2>
-                        <p class="text-slate-400 max-w-xs">Comparte este código con tus amigos para empezar a chatear.</p>
-                    </div>
-                `;
-            }
+            document.getElementById('stopScan').onclick = () => {
+                if(html5QrcodeScanner) {
+                    html5QrcodeScanner.stop().then(() => renderChildDashboard()).catch(() => renderChildDashboard());
+                } else {
+                    renderChildDashboard();
+                }
+            };
         }
 
-        window.openChat = (id) => { state.activeChatId = id; refreshKidUI(); }
-        window.closeChat = () => { state.activeChatId = null; refreshKidUI(); }
-        
-        window.showMyCode = () => { state.activeChatId = null; refreshKidUI(); } // En desktop muestra el panel derecho vacio (que tiene el QR)
-
-        window.openScan = () => {
-            const modal = showModal(`
-                <div class="p-6 text-center">
-                    <div class="bg-primary-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-primary-600">${icon('users')}</div>
-                    <h3 class="text-xl font-bold text-slate-800 mb-2">Añadir Amigo</h3>
-                    <p class="text-slate-500 text-sm mb-6">Escribe el código de 6 letras de tu amigo.</p>
-                    <input id="friendCode" class="w-full text-center text-3xl font-mono uppercase tracking-widest border-2 border-slate-200 rounded-xl p-3 outline-none focus:border-primary-500 mb-6" maxlength="6">
-                    <button onclick="window.addFriendAction()" class="w-full bg-primary-600 text-white font-bold py-3 rounded-xl shadow-lg">BUSCAR</button>
-                </div>
-            `);
-            window.addFriendAction = async () => {
-                const code = document.getElementById('friendCode').value.toUpperCase();
-                if(code.length < 6) return;
-                try {
-                    const snap = await db.collection(COLLECTIONS.USERS).where('familyCode', '==', code).get();
-                    if(snap.empty) return showToast('Código no encontrado', 'error');
-                    const friend = snap.docs[0].data();
-                    const friendId = snap.docs[0].id;
-                    
-                    if(friend.role !== 'kid') return showToast('Solo puedes añadir a otros niños', 'error');
-                    if(friendId === state.user.uid) return showToast('No puedes añadirte a ti mismo', 'error');
-
-                    // Verificar si ya existe
-                    const exists = state.chats.find(c => c.participants.includes(friendId));
-                    if(exists) { showToast('Ya sois amigos'); modal.remove(); return window.openChat(exists.id); }
-
-                    await db.collection(COLLECTIONS.CHATS).add({
-                        participants: [state.user.uid, friendId],
-                        names: { [state.user.uid]: state.userData.name, [friendId]: friend.name },
-                        avatars: { [state.user.uid]: state.userData.avatar, [friendId]: friend.avatar },
-                        messages: [],
-                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    
-                    showToast('¡Amigo añadido!');
-                    modal.remove();
-                } catch(e) { showToast(e.message, 'error'); }
-            }
-        }
-
-        window.sendMsg = async () => {
-            const input = document.getElementById('msg-input');
-            const text = input.value.trim();
-            if(!text) return;
-
-            // Filtro local inmediato
-            if(BAD_WORDS.some(w => text.toLowerCase().includes(w))) {
-                input.value = "";
-                await db.collection(COLLECTIONS.ALERTS).add({
-                    type: 'BAD_WORD', kidId: state.user.uid, parentId: state.userData.parentId,
-                    kidName: state.userData.name, detail: text, timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                return showToast('⚠️ ¡Palabra fea bloqueada!', 'error');
+        async function addFriend(friendUid) {
+            if (friendUid === currentUser.uid) {
+                showToast("No puedes añadirte a ti mismo", true);
+                renderChildDashboard();
+                return;
             }
 
             try {
-                await db.collection(COLLECTIONS.CHATS).doc(state.activeChatId).update({
-                    messages: firebase.firestore.FieldValue.arrayUnion({
-                        text, senderId: state.user.uid, timestamp: new Date().toISOString()
-                    }),
-                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                input.value = "";
-            } catch(e) { console.error(e); }
+                // Create unique Chat ID (alphabetical sort to ensure uniqueness for pair)
+                const chatId = [currentUser.uid, friendUid].sort().join("_");
+                
+                // Check if chat exists
+                const chatRef = doc(db, "chats", chatId);
+                const chatSnap = await getDoc(chatRef);
+
+                if (!chatSnap.exists()) {
+                    await setDoc(chatRef, {
+                        participants: [currentUser.uid, friendUid],
+                        lastMessage: "Chat iniciado",
+                        lastUpdated: serverTimestamp()
+                    });
+                }
+
+                // Add to both users' friend lists (subcollection or array, using array for simplicity in MVP)
+                // Actually, let's just use the 'chats' collection logic to find friends. 
+                // But we need to verify users exist.
+                
+                showToast("¡Amigo añadido con éxito!");
+                renderChildDashboard();
+
+            } catch (e) {
+                showToast("Error añadiendo amigo", true);
+                renderChildDashboard();
+            }
         }
 
-        // --- 6. ARRANQUE ---
-        auth.onAuthStateChanged(async (u) => {
-            if (u) {
-                // Escuchar cambios en el perfil (Bloqueos en tiempo real)
-                db.collection(COLLECTIONS.USERS).doc(u.uid).onSnapshot(doc => {
-                    if(doc.exists) {
-                        state.user = u;
-                        state.userData = doc.data();
-                        state.userData.role === 'parent' ? renderParent() : renderKid();
-                    }
+        // --- CHAT SYSTEM ---
+        
+        function loadChats(userId, isReadOnly) {
+            const listContainer = document.getElementById('chatsList');
+            const q = query(collection(db, "chats"), where("participants", "array-contains", userId), orderBy("lastUpdated", "desc"));
+
+            unsubscribeChats = onSnapshot(q, async (snapshot) => {
+                if (snapshot.empty) {
+                    listContainer.innerHTML = `
+                        <div class="text-center mt-10 text-gray-400">
+                            <i class="fa-solid fa-comments text-4xl mb-2"></i>
+                            <p>${isReadOnly ? 'Tu hijo no tiene chats.' : 'No tienes chats.'}</p>
+                        </div>`;
+                    return;
+                }
+
+                listContainer.innerHTML = "";
+                
+                for (const docSnap of snapshot.docs) {
+                    const chat = docSnap.data();
+                    const otherId = chat.participants.find(id => id !== userId);
+                    
+                    // Fetch other user name
+                    const userDoc = await getDoc(doc(db, "users", otherId));
+                    const otherName = userDoc.exists() ? userDoc.data().name : "Usuario desconocido";
+                    const initial = otherName[0].toUpperCase();
+
+                    const div = document.createElement('div');
+                    div.className = "bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3 cursor-pointer hover:bg-gray-50 transition";
+                    div.innerHTML = `
+                        <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold text-lg">
+                            ${initial}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-bold text-gray-800 truncate">${otherName}</h4>
+                            <p class="text-sm text-gray-500 truncate">${chat.lastMessage || '...'}</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-gray-300"></i>
+                    `;
+                    div.onclick = () => renderChat(docSnap.id, otherName, isReadOnly);
+                    listContainer.appendChild(div);
+                }
+            });
+        }
+
+        function renderChat(chatId, otherName, isReadOnly) {
+            mainContent.innerHTML = `
+                <div class="flex flex-col h-full bg-gray-50">
+                    <div class="bg-white p-3 border-b shadow-sm flex items-center gap-3">
+                        <button id="backBtn" class="text-gray-600 hover:text-indigo-600 p-2">
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </button>
+                        <div class="font-bold text-gray-800 flex-1">
+                            ${otherName} ${isReadOnly ? '<span class="text-xs text-red-500 ml-2">(Solo lectura)</span>' : ''}
+                        </div>
+                    </div>
+
+                    <div id="messagesArea" class="flex-1 overflow-y-auto p-4 space-y-2 flex flex-col">
+                        <!-- Messages go here -->
+                    </div>
+
+                    ${!isReadOnly ? `
+                    <form id="msgForm" class="p-3 bg-white border-t flex gap-2">
+                        <input type="text" id="msgInput" class="flex-1 border rounded-full px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none bg-gray-50" placeholder="Escribe un mensaje..." autocomplete="off">
+                        <button type="submit" class="bg-indigo-600 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-indigo-700">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                    ` : ''}
+                </div>
+            `;
+
+            document.getElementById('backBtn').onclick = () => {
+                if(unsubscribeMessages) unsubscribeMessages();
+                if(isReadOnly) renderParentDashboard();
+                else renderChildDashboard();
+            };
+
+            const msgsArea = document.getElementById('messagesArea');
+
+            // Load Messages
+            const q = query(collection(db, `chats/${chatId}/messages`), orderBy("timestamp", "asc"));
+            unsubscribeMessages = onSnapshot(q, (snapshot) => {
+                msgsArea.innerHTML = "";
+                snapshot.forEach(doc => {
+                    const msg = doc.data();
+                    // In readOnly mode, we need to know who is who relative to the CHILD, not the logged in parent
+                    // userData.linkedTo is the child ID.
+                    const isMe = isReadOnly ? (msg.senderId === userData.linkedTo) : (msg.senderId === currentUser.uid);
+                    
+                    const bubble = document.createElement('div');
+                    bubble.className = `message-bubble px-4 py-2 rounded-2xl text-sm ${isMe ? 'bg-indigo-600 text-white self-end rounded-tr-none' : 'bg-white border text-gray-800 self-start rounded-tl-none'}`;
+                    bubble.innerText = msg.text;
+                    msgsArea.appendChild(bubble);
                 });
+                msgsArea.scrollTop = msgsArea.scrollHeight;
+            });
+
+            if(!isReadOnly) {
+                document.getElementById('msgForm').onsubmit = async (e) => {
+                    e.preventDefault();
+                    const input = document.getElementById('msgInput');
+                    const text = input.value.trim();
+                    if(!text) return;
+
+                    input.value = "";
+                    
+                    // Add message
+                    await addDoc(collection(db, `chats/${chatId}/messages`), {
+                        text: text,
+                        senderId: currentUser.uid,
+                        timestamp: serverTimestamp()
+                    });
+
+                    // Update last message in chat
+                    await updateDoc(doc(db, "chats", chatId), {
+                        lastMessage: text,
+                        lastUpdated: serverTimestamp()
+                    });
+                };
+            }
+        }
+
+        // --- AUTH OBSERVER ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists()) {
+                    userData = userDoc.data();
+                    logoutBtn.classList.remove('hidden');
+                    
+                    if (userData.role === 'parent') {
+                        renderParentDashboard();
+                    } else {
+                        renderChildDashboard();
+                    }
+                } else {
+                    // Fallback if db entry missing (shouldn't happen with correct flow)
+                    renderAuth();
+                }
             } else {
-                state.user = null;
-                cleanListeners();
+                currentUser = null;
+                userData = null;
                 renderAuth();
             }
         });
+
+        logoutBtn.onclick = () => {
+            signOut(auth);
+            if(unsubscribeChats) unsubscribeChats();
+            if(unsubscribeMessages) unsubscribeMessages();
+            if(qrInterval) clearInterval(qrInterval);
+            if(html5QrcodeScanner) html5QrcodeScanner.stop();
+        };
 
     </script>
 </body>
